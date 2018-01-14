@@ -1,10 +1,12 @@
 import keras
 from keras import Sequential
 from keras import regularizers
+from keras.layers import GlobalAveragePooling2D, Input, Lambda
 from keras.layers.convolutional import Conv2D, MaxPooling2D
 from keras.layers.core import Dense, Dropout, Flatten
 from keras.layers.normalization import BatchNormalization
-from keras.optimizers import SGD
+from keras.models import Model
+from keras.optimizers import SGD, RMSprop
 
 
 def test_model(learning_rate=0.01,
@@ -55,3 +57,50 @@ def test_model(learning_rate=0.01,
                   metrics=['accuracy', top5]
                   )
     return model
+
+
+def pre_trained_InceptionV3(learning_rate):
+    net_input = Input([64, 64, 3])
+    resizer = Lambda(lambda image: keras.backend.resize_images(image, 2.171875, 2.171875, "channels_last"))(net_input)
+
+    base_model = keras.applications.InceptionV3(weights='imagenet', include_top=False, input_tensor=resizer)
+
+    output = base_model.output
+    output = GlobalAveragePooling2D()(output)
+    output = Dense(1024, activation='relu')(output)
+    output = Dense(200, activation="softmax")(output)
+
+    model = Model(inputs=base_model.input, outputs=output)
+    for layer in base_model.layers:
+        layer.trainable = False
+
+    top5 = keras.metrics.top_k_categorical_accuracy
+    model.compile(optimizer=RMSprop(lr=learning_rate), loss='categorical_crossentropy',
+                  metrics=['accuracy', top5])
+
+    return model
+
+
+def fine_tune_InceptionV3(model, train_generator, test_generator, callbacks, Parameters):
+    # for i, layer in enumerate(model.layers):
+    #     print(i, layer.name)
+
+    # we chose to train the top 2 inception blocks, i.e. we will freeze
+    # the first 249 layers and unfreeze the rest:
+    for layer in model.layers[:249]:
+        layer.trainable = False
+    for layer in model.layers[249:]:
+        layer.trainable = True
+
+    # we need to recompile the model for these modifications to take effect
+    # we use SGD with a low learning rate
+
+    top5 = keras.metrics.top_k_categorical_accuracy
+    model.compile(optimizer=SGD(lr=0.0001, momentum=0.9), loss='categorical_crossentropy',
+                  metrics=['accuracy', top5])
+
+    # we train our model again (this time fine-tuning the top 2 inception blocks
+    # alongside the top Dense layers
+    model.fit_generator(train_generator, epochs=Parameters.nb_epochs,
+                        verbose=1, validation_data=test_generator,
+                        callbacks=callbacks, shuffle='batch', workers=6)

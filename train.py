@@ -1,75 +1,49 @@
-import os
-
-import keras
-from keras.preprocessing.image import ImageDataGenerator
-
-from dataset_loading import load_tiny_image_net
-from model import test_model
-from visualize import plot_confusion_matrix
+from callbacks import get_callbacks
+from dataset_loading import get_caffe_image_generators
+from model import pre_trained_InceptionV3, fine_tune_InceptionV3
 
 
 class Parameters():
     batch_size = 256
     nb_epochs = 80
 
-    initial_learning_rate = 0.1
+    initial_learning_rate = 0.001
     lr_patience = 3
     lr_update = .01
-    min_lr = .0001
+    min_lr = .00001
     patience_stop = 5
 
 
 def main():
-    train_x, train_y, test_x, test_y = load_tiny_image_net()
-    model = test_model(learning_rate=Parameters.initial_learning_rate)
+    # data loading and augmentation
+    # train_generator, test_generator = get_normalized_image_generators(Parameters)
+    train_generator, test_generator = get_caffe_image_generators(Parameters)
+
+    # define model
+    # model = test_model(learning_rate=Parameters.initial_learning_rate)
+    model = pre_trained_InceptionV3(learning_rate=Parameters.initial_learning_rate)
     model.summary()
     embedding_layer_names = set(layer.name
                                 for layer in model.layers
                                 if layer.name.startswith('conv2d_'))
-    train_generator = ImageDataGenerator(width_shift_range=0.05,
-                                         height_shift_range=0.05,
-                                         horizontal_flip=True,
-                                         shear_range=.1,
-                                         zoom_range=.1,
-                                         fill_mode='nearest')
-    # train_generator.fit(train_x) # not needed, data already normalised
 
     # TODO:
     # *save model file + parameters to tensorboard folder
     # *require argument model name
+    callbacks = get_callbacks(Parameters, embedding_layer_names)
+    model.fit_generator(train_generator, epochs=Parameters.nb_epochs,
+                        verbose=1, validation_data=test_generator,
+                        callbacks=callbacks,
+                        shuffle='batch', workers=6)
+    # fine tune model
+    fine_tune_InceptionV3(model, train_generator, test_generator, callbacks=callbacks, Parameters=Parameters)
 
-    test_generator = ImageDataGenerator()
-    train_generator = train_generator.flow(train_x, train_y, batch_size=Parameters.batch_size)
-    test_generator = test_generator.flow(test_x, test_y, batch_size=Parameters.batch_size, shuffle=False)
+    # model.load_weights("./checkpoints/weights.43-0.42.hdf5")
 
-    cb_tensorboard = keras.callbacks.TensorBoard(log_dir='./tensorboard/test_model2', histogram_freq=0,
-                                                 batch_size=Parameters.batch_size,
-                                                 write_graph=True, write_grads=False,
-                                                 write_images=True, embeddings_freq=0,
-                                                 embeddings_layer_names=embedding_layer_names,
-                                                 embeddings_metadata=None)
-    cb_reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_acc', factor=Parameters.lr_update,
-                                                     patience=Parameters.lr_patience,
-                                                     verbose=1,
-                                                     min_lr=Parameters.min_lr)
-    cb_early_stop = keras.callbacks.EarlyStopping(monitor='val_acc', min_delta=0., patience=Parameters.patience_stop,
-                                                  verbose=1, mode='auto')
-    cb_checkpoint = keras.callbacks.ModelCheckpoint(os.path.join("checkpoints",
-                                                                 "weights.{epoch:02d}-{val_acc:.2f}.hdf5"),
-                                                    monitor='val_acc',
-                                                    verbose=0, save_best_only=True,
-                                                    save_weights_only=False, mode='auto', period=1)
-
-    # model.fit_generator(train_generator, epochs=Parameters.nb_epochs,
-    #                     verbose=1, validation_data=test_generator,
-    #                     callbacks=[cb_tensorboard, cb_reduce_lr, cb_early_stop, cb_reduce_lr, cb_checkpoint],
-    #                     shuffle='batch', workers=6)
-
-    model.load_weights("./checkpoints/weights.43-0.42.hdf5")
-    print(list(zip(model.metrics_names, model.evaluate_generator(test_generator, workers=6))))
-
-    y_pred = model.predict_generator(test_generator, workers=6)
-    plot_confusion_matrix(test_y, y_pred)
+    pass
+    pass
+    pass
+    # plot_confusion_matrix(test_y, y_pred)
 
 
 
