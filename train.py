@@ -1,15 +1,16 @@
-import sys
 import os
-import argparse
+import os
+
 import keras
+from keras.preprocessing.image import ImageDataGenerator
 
 from dataset_loading import load_tiny_image_net
 from model import test_model
-from keras.preprocessing.image import ImageDataGenerator
+
 
 class Parameters():
     batch_size = 256
-    nb_epochs = 40
+    nb_epochs = 80
 
     initial_learning_rate = 0.1
     lr_patience = 3
@@ -28,15 +29,15 @@ def main():
     train_generator = ImageDataGenerator(width_shift_range=0.05,
                                          height_shift_range=0.05,
                                          horizontal_flip=True,
-                                         # shear_range=.1,
-                                         # zoom_range=.1,
+                                         shear_range=.1,
+                                         zoom_range=.1,
                                          fill_mode='nearest')
     # train_generator.fit(train_x) # not needed, data already normalised
     test_generator = ImageDataGenerator()
     train_generator = train_generator.flow(train_x, train_y, batch_size=Parameters.batch_size)
     test_generator = test_generator.flow(test_x, test_y, batch_size=Parameters.batch_size)
 
-    cb_tensorboard = keras.callbacks.TensorBoard(log_dir='./tensorboard/test_model', histogram_freq=0,
+    cb_tensorboard = keras.callbacks.TensorBoard(log_dir='./tensorboard/test_model2', histogram_freq=0,
                                                  batch_size=Parameters.batch_size,
                                                  write_graph=True, write_grads=False,
                                                  write_images=True, embeddings_freq=1,

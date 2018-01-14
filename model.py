@@ -1,11 +1,10 @@
 import keras
 from keras import Sequential
-from keras.layers.convolutional import Conv2D, MaxPooling2D, ZeroPadding2D, AveragePooling2D
-from keras.layers.normalization import BatchNormalization
-from keras.layers.core import Dense, Dropout, Activation, Flatten, Permute
 from keras import regularizers
+from keras.layers.convolutional import Conv2D, MaxPooling2D
+from keras.layers.core import Dense, Dropout, Flatten
+from keras.layers.normalization import BatchNormalization
 from keras.optimizers import SGD
-from keras.layers import Input
 
 
 def test_model(learning_rate=0.01,
@@ -41,10 +40,10 @@ def test_model(learning_rate=0.01,
     model.add(Flatten())
     model.add(Dense(1024, activation='relu', kernel_regularizer=regul,
                     kernel_initializer=initializer))
-    # model.add(Dropout(0.75))
+    model.add(Dropout(0.15))  # the rate of dropping, here 15%
     model.add(Dense(1024, activation='relu', kernel_regularizer=regul,
                     kernel_initializer=initializer))
-    # model.add(Dropout(0.75))
+    model.add(Dropout(0.15))
     model.add(Dense(num_classes, activation='softmax', kernel_initializer=initializer))
 
     sgd = SGD(lr=learning_rate, decay=0., momentum=0.9, nesterov=True)
