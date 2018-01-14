@@ -22,12 +22,14 @@ def main():
     train_x, train_y, test_x, test_y = load_tiny_image_net()
     model = test_model(learning_rate=Parameters.initial_learning_rate)
     model.summary()
-
-    train_generator = ImageDataGenerator(width_shift_range=0.1,
-                                         height_shift_range=0.1,
+    embedding_layer_names = set(layer.name
+                                for layer in model.layers
+                                if layer.name.startswith('conv2d_'))
+    train_generator = ImageDataGenerator(width_shift_range=0.05,
+                                         height_shift_range=0.05,
                                          horizontal_flip=True,
-                                         shear_range=.1,
-                                         zoom_range=.1,
+                                         # shear_range=.1,
+                                         # zoom_range=.1,
                                          fill_mode='nearest')
     # train_generator.fit(train_x) # not needed, data already normalised
     test_generator = ImageDataGenerator()
@@ -37,7 +39,8 @@ def main():
     cb_tensorboard = keras.callbacks.TensorBoard(log_dir='./tensorboard/test_model', histogram_freq=0,
                                                  batch_size=Parameters.batch_size,
                                                  write_graph=True, write_grads=False,
-                                                 write_images=True, embeddings_freq=1, embeddings_layer_names=None,
+                                                 write_images=True, embeddings_freq=1,
+                                                 embeddings_layer_names=embedding_layer_names,
                                                  embeddings_metadata=None)
     cb_reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_acc', factor=Parameters.lr_update,
                                                      patience=Parameters.lr_patience,
@@ -52,7 +55,7 @@ def main():
                                                     save_weights_only=False, mode='auto', period=1)
 
     model.fit_generator(train_generator, epochs=Parameters.nb_epochs,
-              verbose=1, validation_data=test_generator, validation_steps=(test_x.shape[0] // Parameters.batch_size),
+              verbose=1, validation_data=test_generator,
               callbacks=[cb_tensorboard, cb_reduce_lr, cb_early_stop, cb_reduce_lr, cb_checkpoint],
               shuffle='batch', workers=6)
 

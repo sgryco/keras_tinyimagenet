@@ -41,10 +41,10 @@ def test_model(learning_rate=0.01,
     model.add(Flatten())
     model.add(Dense(1024, activation='relu', kernel_regularizer=regul,
                     kernel_initializer=initializer))
-    model.add(Dropout(0.75))
+    # model.add(Dropout(0.75))
     model.add(Dense(1024, activation='relu', kernel_regularizer=regul,
                     kernel_initializer=initializer))
-    model.add(Dropout(0.75))
+    # model.add(Dropout(0.75))
     model.add(Dense(num_classes, activation='softmax', kernel_initializer=initializer))
 
     sgd = SGD(lr=learning_rate, decay=0., momentum=0.9, nesterov=True)
