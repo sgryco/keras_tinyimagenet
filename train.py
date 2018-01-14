@@ -1,11 +1,11 @@
 import os
-import os
 
 import keras
 from keras.preprocessing.image import ImageDataGenerator
 
 from dataset_loading import load_tiny_image_net
 from model import test_model
+from visualize import plot_confusion_matrix
 
 
 class Parameters():
@@ -33,14 +33,19 @@ def main():
                                          zoom_range=.1,
                                          fill_mode='nearest')
     # train_generator.fit(train_x) # not needed, data already normalised
+
+    # TODO:
+    # *save model file + parameters to tensorboard folder
+    # *require argument model name
+
     test_generator = ImageDataGenerator()
     train_generator = train_generator.flow(train_x, train_y, batch_size=Parameters.batch_size)
-    test_generator = test_generator.flow(test_x, test_y, batch_size=Parameters.batch_size)
+    test_generator = test_generator.flow(test_x, test_y, batch_size=Parameters.batch_size, shuffle=False)
 
     cb_tensorboard = keras.callbacks.TensorBoard(log_dir='./tensorboard/test_model2', histogram_freq=0,
                                                  batch_size=Parameters.batch_size,
                                                  write_graph=True, write_grads=False,
-                                                 write_images=True, embeddings_freq=1,
+                                                 write_images=True, embeddings_freq=0,
                                                  embeddings_layer_names=embedding_layer_names,
                                                  embeddings_metadata=None)
     cb_reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_acc', factor=Parameters.lr_update,
@@ -55,10 +60,17 @@ def main():
                                                     verbose=0, save_best_only=True,
                                                     save_weights_only=False, mode='auto', period=1)
 
-    model.fit_generator(train_generator, epochs=Parameters.nb_epochs,
-              verbose=1, validation_data=test_generator,
-              callbacks=[cb_tensorboard, cb_reduce_lr, cb_early_stop, cb_reduce_lr, cb_checkpoint],
-              shuffle='batch', workers=6)
+    # model.fit_generator(train_generator, epochs=Parameters.nb_epochs,
+    #                     verbose=1, validation_data=test_generator,
+    #                     callbacks=[cb_tensorboard, cb_reduce_lr, cb_early_stop, cb_reduce_lr, cb_checkpoint],
+    #                     shuffle='batch', workers=6)
+
+    model.load_weights("./checkpoints/weights.43-0.42.hdf5")
+    print(list(zip(model.metrics_names, model.evaluate_generator(test_generator, workers=6))))
+
+    y_pred = model.predict_generator(test_generator, workers=6)
+    plot_confusion_matrix(test_y, y_pred)
+
 
 
 if __name__ == "__main__":

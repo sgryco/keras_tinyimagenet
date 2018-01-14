@@ -1,0 +1,200 @@
+000	comic book
+001	freight car
+002	cockroach, roach
+003	wooden spoon
+004	Persian cat
+005	bullet train, bullet
+006	trolleybus, trolley coach, trackless trolley
+007	ox
+008	black stork, Ciconia nigra
+009	gondola
+010	cash machine, cash dispenser, automated teller machine, automatic teller machine, automated teller, automatic teller, ATM
+011	mushroom
+012	confectionery, confectionary, candy store
+013	picket fence, paling
+014	viaduct
+015	brain coral
+016	reel
+017	bathtub, bathing tub, bath, tub
+018	bison
+019	nail
+020	boa constrictor, Constrictor constrictor
+021	steel arch bridge
+022	obelisk
+023	snail
+024	beer bottle
+025	lemon
+026	pizza, pizza pie
+027	dumbbell
+028	remote control, remote
+029	frying pan, frypan, skillet
+030	hog, pig, grunter, squealer, Sus scrofa
+031	fountain
+032	sock
+033	pomegranate
+034	cliff, drop, drop-off
+035	barbershop
+036	broom
+037	bullfrog, Rana catesbeiana
+038	maypole
+039	American alligator, Alligator mississipiensis
+040	school bus
+041	kimono
+042	cauliflower
+043	seashore, coast, seacoast, sea-coast
+044	parking meter
+045	brass, memorial tablet, plaque
+046	vestment
+047	acorn
+048	abacus
+049	poncho
+050	cliff dwelling
+051	lesser panda, red panda, panda, bear cat, cat bear, Ailurus fulgens
+052	sunglasses, dark glasses, shades
+053	espresso
+054	albatross, mollymawk
+055	guinea pig, Cavia cobaya
+056	refrigerator, icebox
+057	beacon, lighthouse, beacon light, pharos
+058	Christmas stocking
+059	plate
+060	altar
+061	pill bottle
+062	bannister, banister, balustrade, balusters, handrail
+063	birdhouse
+064	pretzel
+065	CD player
+066	sewing machine
+067	trilobite
+068	beaker
+069	organ, pipe organ
+070	barn
+071	chest
+072	centipede
+073	chimpanzee, chimp, Pan troglodytes
+074	grasshopper, hopper
+075	hourglass
+076	gasmask, respirator, gas helmet
+077	dugong, Dugong dugon
+078	binoculars, field glasses, opera glasses
+079	guacamole
+080	sea slug, nudibranch
+081	computer keyboard, keypad
+082	fur coat
+083	mantis, mantid
+084	black widow, Latrodectus mactans
+085	tractor
+086	chain
+087	miniskirt, mini
+088	iPod
+089	pole
+090	pop bottle, soda bottle
+091	African elephant, Loxodonta africana
+092	go-kart
+093	projectile, missile
+094	rugby ball
+095	king penguin, Aptenodytes patagonica
+096	baboon
+097	lampshade, lamp shade
+098	convertible
+099	triumphal arch
+100	spiny lobster, langouste, rock lobster, crawfish, crayfish, sea crawfish
+101	sea cucumber, holothurian
+102	slug
+103	moving van
+104	meat loaf, meatloaf
+105	beach wagon, station wagon, wagon, estate car, beach waggon, station waggon, waggon
+106	potpie
+107	spider web, spider's web
+108	pay-phone, pay-station
+109	potter's wheel
+110	desk
+111	cardigan
+112	lifeboat
+113	lawn mower, mower
+114	sulphur butterfly, sulfur butterfly
+115	sombrero
+116	goldfish, Carassius auratus
+117	alp
+118	fly
+119	cougar, puma, catamount, mountain lion, painter, panther, Felis concolor
+120	American lobster, Northern lobster, Maine lobster, Homarus americanus
+121	Yorkshire terrier
+122	scorpion
+123	jinrikisha, ricksha, rickshaw
+124	koala, koala bear, kangaroo bear, native bear, Phascolarctos cinereus
+125	candle, taper, wax light
+126	police van, police wagon, paddy wagon, patrol wagon, wagon, black Maria
+127	ice cream, icecream
+128	punching bag, punch bag, punching ball, punchball
+129	limousine, limo
+130	ice lolly, lolly, lollipop, popsicle
+131	flagpole, flagstaff
+132	Labrador retriever
+133	space heater
+134	water jug
+135	oboe, hautboy, hautbois
+136	lakeside, lakeshore
+137	thatch, thatched roof
+138	lion, king of beasts, Panthera leo
+139	crane
+140	golden retriever
+141	basketball
+142	bikini, two-piece
+143	umbrella
+144	wok
+145	Arabian camel, dromedary, Camelus dromedarius
+146	syringe
+147	drumstick
+148	torch
+149	bell pepper
+150	orangutan, orang, orangutang, Pongo pygmaeus
+151	suspension bridge
+152	sports car, sport car
+153	banana
+154	rocking chair, rocker
+155	bow tie, bow-tie, bowtie
+156	apron
+157	teapot
+158	walking stick, walkingstick, stick insect
+159	standard poodle
+160	orange
+161	volleyball
+162	European fire salamander, Salamandra salamandra
+163	ladybug, ladybeetle, lady beetle, ladybird, ladybird beetle
+164	gazelle
+165	coral reef
+166	tabby, tabby cat
+167	tailed frog, bell toad, ribbed toad, tailed toad, Ascaphus trui
+168	military uniform
+169	German shepherd, German shepherd dog, German police dog, alsatian
+170	Chihuahua
+171	plunger, plumber's helper
+172	jellyfish
+173	butcher shop, meat market
+174	tarantula
+175	academic gown, academic robe, judge's robe
+176	brown bear, bruin, Ursus arctos
+177	water tower
+178	turnstile
+179	magnetic compass
+180	bee
+181	bighorn, bighorn sheep, cimarron, Rocky Mountain bighorn, Rocky Mountain sheep, Ovis canadensis
+182	dragonfly, darning needle, devil's darning needle, sewing needle, snake feeder, snake doctor, mosquito hawk, skeeter hawk
+183	swimming trunks, bathing trunks
+184	monarch, monarch butterfly, milkweed butterfly, Danaus plexippus
+185	dining table, board
+186	sandal
+187	teddy, teddy bear
+188	neck brace
+189	barrel, cask
+190	goose
+191	scoreboard
+192	mashed potato
+193	cannon
+194	Egyptian cat
+195	snorkel
+196	bucket, pail
+197	stopwatch, stop watch
+198	dam, dike, dyke
+199	backpack, back pack, knapsack, packsack, rucksack, haversack
