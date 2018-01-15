@@ -30,10 +30,13 @@ def load_normalised_tiny_image_net_from_h5():
 
 
 def get_normalized_image_generators(Parameters):
-    train_x, train_y, test_x, test_y = load_raw_tiny_image_net_from_h5()
+    train_x, train_y, test_x, test_y = load_normalised_tiny_image_net_from_h5()
     train_generator = ImageDataGenerator(width_shift_range=0.05,
-                                         height_shift_range=0.05, horizontal_flip=True,
-                                         shear_range=.1, zoom_range=.1, fill_mode='nearest')
+                                         height_shift_range=0.05,
+                                         horizontal_flip=True,
+                                         shear_range=.1, zoom_range=.1,
+                                         fill_mode='nearest')
+
     train_generator = train_generator.flow(train_x, train_y, batch_size=Parameters.batch_size)
     test_generator = ImageDataGenerator()
     test_generator = test_generator.flow(test_x, test_y, batch_size=Parameters.batch_size, shuffle=False)
@@ -48,9 +51,11 @@ def get_caffe_image_generators(Parameters):
     # Namely, the following BGR values should be subtracted: [103.939, 116.779, 123.68].
 
     train_x, train_y, test_x, test_y = load_raw_tiny_image_net_from_h5()
-    train_generator = ImageDataGenerator(preprocessing_function=preprocess_input, width_shift_range=0.05,
-                                         height_shift_range=0.05, horizontal_flip=True,
-                                         shear_range=.1, zoom_range=.1, fill_mode='nearest')
+    train_generator = ImageDataGenerator(preprocessing_function=preprocess_input, horizontal_flip=True,
+                                         width_shift_range=0.05,
+                                         height_shift_range=0.05,
+                                         shear_range=.1, zoom_range=.1, fill_mode='nearest'
+                                         )
     train_generator = train_generator.flow(train_x, train_y, batch_size=Parameters.batch_size)
     test_generator = ImageDataGenerator(preprocessing_function=preprocess_input)
     test_generator = test_generator.flow(test_x, test_y, batch_size=Parameters.batch_size, shuffle=False)
