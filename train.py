@@ -12,7 +12,7 @@ from shutil import copy
 
 from callbacks import get_callbacks
 from dataset_loading import get_caffe_image_generators
-from model import pre_trained_InceptionV3
+from model import VGG16
 
 
 class Parameters():
@@ -21,7 +21,7 @@ class Parameters():
 
     initial_learning_rate = 0.01
     lr_patience = 3
-    lr_update = .01
+    lr_update = .1
     min_lr = .00001
     patience_stop = 5
 
@@ -33,7 +33,8 @@ def main(args):
 
     # define model
     # model = test_model(learning_rate=Parameters.initial_learning_rate)
-    model = pre_trained_InceptionV3(learning_rate=Parameters.initial_learning_rate)
+    # model = pre_trained_InceptionV3(learning_rate=Parameters.initial_learning_rate)
+    model = VGG16(learning_rate=Parameters.initial_learning_rate, load_weights=True)
     model.summary()
     embedding_layer_names = set(layer.name for layer in model.layers if layer.name.startswith('conv2d_'))
 
@@ -53,7 +54,7 @@ def main(args):
 
 
 def save_files(name):
-    root_path = os.path.abspath(os.path.basename(__file__))
+    root_path = os.path.abspath(os.path.dirname(__file__))
     saved_parameters = os.path.join(root_path, "saved_parameters")
     if not os.path.exists(saved_parameters):
         os.mkdir(saved_parameters)
@@ -61,7 +62,7 @@ def save_files(name):
     # handle timestamp folder
     timestr = datetime.datetime.fromtimestamp(
         time.time()).strftime('%Y-%m-%d_%H:%M:%S')
-    folder = timestr + "_" + name
+    folder = os.path.join(saved_parameters, timestr + "_" + name)
 
     if os.path.exists(folder):
         print("Error {} already exists".format(folder))

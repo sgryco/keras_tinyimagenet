@@ -106,23 +106,29 @@ def fine_tune_InceptionV3(model, train_generator, test_generator, callbacks, Par
                         callbacks=callbacks, shuffle='batch', workers=6)
 
 
-def VGG16(learning_rate):
+def VGG16(learning_rate=.02, load_weights=True):
     net_input = Input([64, 64, 3])
-    resizer = Lambda(lambda image: keras.backend.resize_images(image, 2.171875, 2.171875, "channels_last"))(net_input)
+    # resizer = Lambda(lambda image: keras.backend.resize_images(image, 2.171875, 2.171875, "channels_last"))(net_input)
 
-    base_model = keras.applications.VGG16(weights="imagenet", include_top=False, input_tensor=resizer)
+    regul = regularizers.l2(0.0005)
+    base_model = keras.applications.VGG16(weights="imagenet" if load_weights else None,
+                                          include_top=False,
+                                          input_tensor=net_input)
 
     output = base_model.output
     output = Flatten(output)
-    output = Dense(2048, activation='relu')(output)
+    output = Dense(4096, activation='relu')(output)
     output = Dropout(0.5)(output)
-    output = Dense(2048, activation='relu')(output)
+    output = Dense(4096, activation='relu')(output)
     output = Dropout(0.5)(output)
     output = Dense(200, activation="softmax")(output)
 
     model = Model(inputs=base_model.input, outputs=output)
-    # for layer in base_model.layers:
-    #     layer.trainable = False
+
+    # batch add regularizer
+    for layer in model.layers:
+        if hasattr(layer, 'kernel'):
+            layer.add_loss(regul(layer.kernel))
     # from the article:
     # dropout of 0.5
     # lr = 0.01 -> /10 (3 times) (74 epochs for training)
@@ -130,6 +136,46 @@ def VGG16(learning_rate):
     # else, take the weights from the small architecture as input
     # -> after submission they found that initialization of Glorot & Bzngio (glorot_uniform)
     # this is the default for Keras
+
+    top5 = keras.metrics.top_k_categorical_accuracy
+    model.compile(optimizer=SGD(lr=learning_rate, momentum=0.9),
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy', top5])
+
+    return model
+
+
+def test_regul(learning_rate):
+    net_input = Input([64, 64, 3])
+    regul = regularizers.l2(0.005)
+
+    output = net_input
+    output = Conv2D(32, 3, kernel_regularizer=regul, activation='relu')(output)
+    output = Conv2D(32, 3, kernel_regularizer=regul, activation='relu')(output)
+    output = MaxPooling2D((2, 2))(output)
+    output = BatchNormalization(epsilon=1e-05, momentum=0.9)(output)
+
+    output = Conv2D(32, 3, kernel_regularizer=regul, activation='relu')(output)
+    output = Conv2D(32, 3, kernel_regularizer=regul, activation='relu')(output)
+    output = MaxPooling2D((2, 2))(output)
+    output = BatchNormalization(epsilon=1e-05, momentum=0.9)(output)
+
+    output = Conv2D(32, 3, kernel_regularizer=regul, activation='relu')(output)
+    output = Conv2D(32, 3, kernel_regularizer=regul, activation='relu')(output)
+    output = MaxPooling2D((2, 2))(output)
+    output = BatchNormalization(epsilon=1e-05, momentum=0.9)(output)
+
+    output = Flatten()(output)
+    output = Dense(409, activation='relu')(output)
+    output = Dense(409, activation='relu')(output)
+    output = Dense(200, activation="softmax")(output)
+
+    model = Model(inputs=net_input, outputs=output)
+
+    # batch add regularizer
+    # for layer in model.layers:
+    #     if hasattr(layer, 'kernel'):
+    #         layer.add_loss(regul(layer.kernel))
 
     top5 = keras.metrics.top_k_categorical_accuracy
     model.compile(optimizer=SGD(lr=learning_rate, momentum=0.9),
