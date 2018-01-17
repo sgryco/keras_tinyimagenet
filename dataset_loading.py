@@ -37,9 +37,10 @@ def get_normalized_image_generators(parameters):
                                          horizontal_flip=True,
                                          shear_range=.2 * strength,
                                          zoom_range=.15 * strength,
-                                         zca_whitening=True if strength != 0. else False,
-                                         zca_epsilon=1e-6 * strength,
+                                         # zca_whitening=True if strength != 0. else False,
+                                         # zca_epsilon=1e-6 * strength,
                                          fill_mode='reflect')
+    # train_generator.fit(train_x)
 
     # for X_batch, y_batch in train_generator.flow(train_x, train_y, batch_size=9):
     #     # create a grid of 3x3 images

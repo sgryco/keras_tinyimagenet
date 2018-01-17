@@ -241,7 +241,7 @@ def test_regul(learning_rate):
 
 def mynet1(parameters):
     net_input = Input([64, 64, 3])
-    net_noise = GaussianNoise(stddev=.05)(net_input)
+    net_noise = GaussianNoise(stddev=.05 * parameters.augmentation_strength)(net_input)
     # regul = regularizers.l2(0.0005)
     regul = None
     init = glorot_uniform()
@@ -290,7 +290,7 @@ def mynet1(parameters):
     model = Model(inputs=net_input, outputs=output)
     # should give .47 accuracy
 
-    model.compile(optimizer=SGD(lr=parameters.initial_learning_rate, momentum=.9),
+    model.compile(optimizer=parameters.optimizer(parameters.initial_learning_rate),
                   loss='categorical_crossentropy',
                   metrics=['accuracy', top5])
 

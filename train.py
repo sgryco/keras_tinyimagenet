@@ -11,8 +11,14 @@ import sys
 import time
 from shutil import copy
 
+from keras.optimizers import SGD, Adadelta
+from keras.utils import print_summary
+import keras
+
 from callbacks import get_callbacks
 from dataset_loading import get_normalized_image_generators
+# noinspection PyPep8Naming
+import model as modelFile
 
 
 class ObjFromDict(object):
@@ -22,7 +28,7 @@ class ObjFromDict(object):
 
 class BaseParameters():
     batch_size = 128
-    nb_epochs = 80
+    nb_epochs = 5
 
     initial_learning_rate = 0.001
     lr_patience = 3
@@ -31,17 +37,31 @@ class BaseParameters():
     patience_stop = 5
     model_name = 'mynet1'
     augmentation_strength = 1.
+    optimizer = lambda lr: SGD(lr=lr, momentum=.9)
 
+def sgdMomentum09(lr):
+    return SGD(lr=lr, momentum=.9)
+
+def sgdMomentum09nesterov(lr):
+    return SGD(lr=lr, momentum=.9, nesterov=True)
+
+def adadeltaDefault(lr):
+    return Adadelta(lr=lr)
 
 class PossibleParameters():
     initial_learning_rate = [.01, .001]
     model_name = ['mynet1']
     augmentation_strength = [0., 1., 1.5]
-
+    optimizer = [
+        sgdMomentum09,
+        sgdMomentum09nesterov,
+        adadeltaDefault,
+    ]
 
 def train(parameters):
-    # save files to folder
-    save_files(parameters)
+
+    # reset tf graph
+    keras.backend.clear_session()
 
     # data loading and augmentation
     train_generator, test_generator = get_normalized_image_generators(parameters)
@@ -55,9 +75,12 @@ def train(parameters):
     model = getattr(globals()["modelFile"], parameters.model_name)(parameters)
     # model = mynet1(Parameters.initial_learning_rate)
     model.summary()
+
+    # save files to folder
+    save_files(parameters)
     embedding_layer_names = set(layer.name for layer in model.layers if layer.name.startswith('conv2d_'))
 
-    callbacks = get_callbacks(parameters, embedding_layer_names, model_name=args.name)
+    callbacks = get_callbacks(parameters, embedding_layer_names)
     model.fit_generator(train_generator, epochs=parameters.nb_epochs, verbose=1, validation_data=test_generator,
                         callbacks=callbacks, shuffle='batch', workers=6)
     pass
@@ -102,14 +125,14 @@ if __name__ == "__main__":
     if args.random:
         for run_id in range(1, args.nrand + 1):
             parameters = {k: v for k, v in BaseParameters.__dict__.items() if not k.startswith('__')}
-            parameters.selectedParameters = {}
+            parameters['selectedParameters'] = {}
             for key, values in PossibleParameters.__dict__.items():
                 if key.startswith('__'):
                     continue
                 # import ipdb; ipdb.set_trace()
                 param = random.choice(values)
                 parameters[key] = param
-                parameters.selectedParameters[key] = param
+                parameters['selectedParameters'][key] = param
             parameters = ObjFromDict(parameters)
             parameters.run_name = "{}_{:03d}".format(args.name, run_id)
             train(parameters)
