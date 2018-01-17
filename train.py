@@ -28,7 +28,7 @@ class ObjFromDict(object):
 
 class BaseParameters():
     batch_size = 128
-    nb_epochs = 5
+    nb_epochs = 30
 
     initial_learning_rate = 0.001
     lr_patience = 3
