@@ -29,17 +29,32 @@ def load_normalised_tiny_image_net_from_h5():
     return train_x, train_y, test_x, test_y
 
 
-def get_normalized_image_generators(Parameters):
+def get_normalized_image_generators(parameters):
     train_x, train_y, test_x, test_y = load_normalised_tiny_image_net_from_h5()
-    train_generator = ImageDataGenerator(width_shift_range=0.05,
-                                         height_shift_range=0.05,
+    strength = parameters.augmentation_strength
+    train_generator = ImageDataGenerator(width_shift_range=0.15 * strength,
+                                         height_shift_range=0.15 * strength,
                                          horizontal_flip=True,
-                                         shear_range=.1, zoom_range=.1,
-                                         fill_mode='nearest')
+                                         shear_range=.2 * strength,
+                                         zoom_range=.15 * strength,
+                                         zca_whitening=True if strength != 0. else False,
+                                         zca_epsilon=1e-6 * strength,
+                                         fill_mode='reflect')
 
-    train_generator = train_generator.flow(train_x, train_y, batch_size=Parameters.batch_size)
+    # for X_batch, y_batch in train_generator.flow(train_x, train_y, batch_size=9):
+    #     # create a grid of 3x3 images
+    #     for i in range(0, 9):
+    #         pyplot.subplot(330 + 1 + i)
+    #         pyplot.imshow(X_batch[i], cmap=pyplot.get_cmap('gray'))
+    #     # show the plot
+    #     pyplot.show()
+    #     break
+
+    # sys.exit(0)
+
+    train_generator = train_generator.flow(train_x, train_y, batch_size=parameters.batch_size)
     test_generator = ImageDataGenerator()
-    test_generator = test_generator.flow(test_x, test_y, batch_size=Parameters.batch_size, shuffle=False)
+    test_generator = test_generator.flow(test_x, test_y, batch_size=parameters.batch_size, shuffle=False)
 
     return train_generator, test_generator
 

@@ -1,10 +1,12 @@
 import keras
 from keras import Sequential
 from keras import regularizers
-from keras.layers import GlobalAveragePooling2D, Input, Lambda
+from keras.initializers import he_uniform, glorot_uniform
+from keras.layers import GlobalAveragePooling2D, Input, Lambda, AveragePooling2D, Concatenate, GaussianNoise
 from keras.layers.convolutional import Conv2D, MaxPooling2D
 from keras.layers.core import Dense, Dropout, Flatten
 from keras.layers.normalization import BatchNormalization
+from keras.metrics import top_k_categorical_accuracy as top5
 from keras.models import Model
 from keras.optimizers import SGD
 
@@ -51,7 +53,6 @@ def test_model(learning_rate=0.01,
     sgd = SGD(lr=learning_rate, decay=0., momentum=0.9, nesterov=True)
 
     # should get 40% val acc
-    top5 = keras.metrics.top_k_categorical_accuracy
     model.compile(loss=loss_function,
                   optimizer=sgd,
                   metrics=['accuracy', top5]
@@ -74,7 +75,6 @@ def pre_trained_InceptionV3(learning_rate):
     # for layer in base_model.layers:
     #     layer.trainable = False
 
-    top5 = keras.metrics.top_k_categorical_accuracy
     model.compile(optimizer=SGD(lr=learning_rate, momentum=0.9), loss='categorical_crossentropy',
                   metrics=['accuracy', top5])
 
@@ -95,7 +95,6 @@ def fine_tune_InceptionV3(model, train_generator, test_generator, callbacks, Par
     # we need to recompile the model for these modifications to take effect
     # we use SGD with a low learning rate
 
-    top5 = keras.metrics.top_k_categorical_accuracy
     model.compile(optimizer=SGD(lr=0.0001, momentum=0.9), loss='categorical_crossentropy',
                   metrics=['accuracy', top5])
 
@@ -114,14 +113,16 @@ def VGG16(learning_rate=.02, load_weights=True):
     base_model = keras.applications.VGG16(weights="imagenet" if load_weights else None,
                                           include_top=False,
                                           input_tensor=net_input)
+    # try to retrain only the last layer?
+    # try to lock the old layers?
 
     output = base_model.output
-    output = Flatten(output)
-    output = Dense(4096, activation='relu')(output)
-    output = Dropout(0.5)(output)
-    output = Dense(4096, activation='relu')(output)
-    output = Dropout(0.5)(output)
-    output = Dense(200, activation="softmax")(output)
+    output = Flatten()(output)
+    output = Dense(2048, activation='relu', kernel_initializer='he_uniform')(output)
+    # output = Dropout(0.5)(output)
+    output = Dense(2048, activation='relu', kernel_initializer='he_uniform')(output)
+    # output = Dropout(0.5)(output)
+    output = Dense(200, activation="softmax", kernel_initializer='glorot_uniform')(output)
 
     model = Model(inputs=base_model.input, outputs=output)
 
@@ -137,7 +138,61 @@ def VGG16(learning_rate=.02, load_weights=True):
     # -> after submission they found that initialization of Glorot & Bzngio (glorot_uniform)
     # this is the default for Keras
 
-    top5 = keras.metrics.top_k_categorical_accuracy
+    model.compile(optimizer=SGD(lr=learning_rate, momentum=0.9),
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy', top5])
+
+    return model
+
+
+def VGG16_custom(learning_rate):
+    regul = regularizers.l2(0.0005)
+    init = he_uniform()
+
+    img_input = Input([64, 64, 3])
+    # Block 1
+    x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv1', kernel_initializer=init)(img_input)
+    x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv2', kernel_initializer=init)(x)
+    x = MaxPooling2D((2, 2), strides=(2, 2), name='block1_pool')(x)
+
+    # Block 2
+    x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv1', kernel_initializer=init)(x)
+    x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv2', kernel_initializer=init)(x)
+    x = MaxPooling2D((2, 2), strides=(2, 2), name='block2_pool')(x)
+
+    # Block 3
+    x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv1', kernel_initializer=init)(x)
+    x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv2', kernel_initializer=init)(x)
+    x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv3', kernel_initializer=init)(x)
+    x = MaxPooling2D((2, 2), strides=(2, 2), name='block3_pool')(x)
+
+    # Block 4
+    x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv1', kernel_initializer=init)(x)
+    x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv2', kernel_initializer=init)(x)
+    x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv3', kernel_initializer=init)(x)
+    x = MaxPooling2D((2, 2), strides=(2, 2), name='block4_pool')(x)
+
+    # Block 5
+    x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv1', kernel_initializer=init)(x)
+    x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv2', kernel_initializer=init)(x)
+    x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv3', kernel_initializer=init)(x)
+    x = MaxPooling2D((2, 2), strides=(2, 2), name='block5_pool')(x)
+
+    # Classification block
+    x = Flatten(name='flatten')(x)
+    x = Dense(4096, activation='relu', name='fc1', kernel_initializer=init)(x)
+    x = Dropout(0.5)(x)
+    x = Dense(4096, activation='relu', name='fc2', kernel_initializer=init)(x)
+    x = Dropout(0.5)(x)
+    x = Dense(200, activation='softmax', name='predictions', kernel_initializer=init)(x)
+
+    model = Model(inputs=img_input, outputs=x)
+
+    # batch add regularizer
+    for layer in model.layers:
+        if hasattr(layer, 'kernel'):
+            layer.add_loss(regul(layer.kernel))
+
     model.compile(optimizer=SGD(lr=learning_rate, momentum=0.9),
                   loss='categorical_crossentropy',
                   metrics=['accuracy', top5])
@@ -177,8 +232,65 @@ def test_regul(learning_rate):
     #     if hasattr(layer, 'kernel'):
     #         layer.add_loss(regul(layer.kernel))
 
-    top5 = keras.metrics.top_k_categorical_accuracy
     model.compile(optimizer=SGD(lr=learning_rate, momentum=0.9),
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy', top5])
+
+    return model
+
+
+def mynet1(parameters):
+    net_input = Input([64, 64, 3])
+    net_noise = GaussianNoise(stddev=.05)(net_input)
+    # regul = regularizers.l2(0.0005)
+    regul = None
+    init = glorot_uniform()
+
+    output = net_noise
+    local_img = net_noise
+    for nb_conv in [48, 96, 128, 256]:
+        output = Conv2D(nb_conv, kernel_size=3, strides=1, padding="same", kernel_regularizer=regul, activation='relu',
+                        kernel_initializer=init)(output)
+        output = Conv2D(nb_conv, kernel_size=3, strides=1, padding="same", kernel_regularizer=regul, activation='relu',
+                        kernel_initializer=init)(output)
+        output = MaxPooling2D((2, 2))(output)
+        output = BatchNormalization(axis=3, epsilon=1e-05, momentum=0.9)(output)
+        local_img = AveragePooling2D((2, 2), strides=None, padding="same")(local_img)
+        output = Concatenate(axis=3)([output, local_img])
+        output = Conv2D(nb_conv, kernel_size=3, strides=1, padding="same", kernel_regularizer=regul, activation='relu',
+                        kernel_initializer=init)(output)
+
+    # second
+    second = net_noise
+    local_img = net_noise
+    for nb_conv in [48, 96, 128, 256]:
+        second = Conv2D(nb_conv, kernel_size=3, strides=1, padding="same", kernel_regularizer=regul, activation='relu',
+                        kernel_initializer=init)(second)
+        second = Conv2D(nb_conv, kernel_size=1, strides=1, padding="same", kernel_regularizer=regul, activation='relu',
+                        kernel_initializer=init)(second)
+        second = MaxPooling2D((2, 2))(second)
+        second = BatchNormalization(axis=3, epsilon=1e-05, momentum=0.9)(second)
+        local_img = AveragePooling2D((2, 2), strides=None, padding="same")(local_img)
+        second = Concatenate(axis=3)([second, local_img])
+        second = Conv2D(nb_conv, kernel_size=1, strides=1, padding="same", kernel_regularizer=regul, activation='relu',
+                        kernel_initializer=init)(second)
+
+    merged = Concatenate(axis=3)([output, second])
+    merged = Conv2D(1024, 1, kernel_regularizer=regul, activation='relu', kernel_initializer=init)(merged)
+    merged = MaxPooling2D((4, 4))(merged)
+    # merged = AveragePooling2D(pool_size=(2, 2), strides=None, padding="valid")(merged)
+
+    output = Flatten()(merged)
+    output = Dense(1392, activation='relu', kernel_regularizer=regul, kernel_initializer=init)(output)
+    # output = Dropout(0.75)(output)
+    output = Dense(768, activation='relu', kernel_regularizer=regul, kernel_initializer=init)(output)
+    # output = Dropout(0.85)(output)
+    output = Dense(200, activation="softmax", kernel_initializer=init, kernel_regularizer=regul)(output)
+
+    model = Model(inputs=net_input, outputs=output)
+    # should give .47 accuracy
+
+    model.compile(optimizer=SGD(lr=parameters.initial_learning_rate, momentum=.9),
                   loss='categorical_crossentropy',
                   metrics=['accuracy', top5])
 
