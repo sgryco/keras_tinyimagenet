@@ -295,3 +295,44 @@ def mynet1(parameters):
                   metrics=['accuracy', top5])
 
     return model
+
+
+def smallnet(parameters):
+    net_input = Input([64, 64, 3])
+    net_noise = GaussianNoise(stddev=.05 * parameters.augmentation_strength)(net_input)
+    regul = regularizers.l2(parameters.kernel_regularizer)
+    init = parameters.kernel_initialization
+
+    output = net_noise
+    local_img = net_noise
+    for nb_conv in [parameters.nb_filter_inc_per_layer * i for i in range(1, parameters.nb_layers + 1)]:
+        for i in range(parameters.conv_repetition):
+            output = Conv2D(nb_conv, kernel_size=parameters.filter_size,
+                            strides=1, padding=parameters.padding,
+                            kernel_regularizer=regul,
+                            activation='relu',
+                            kernel_initializer=init)(output)
+        output = MaxPooling2D((2, 2))(output)
+        output = BatchNormalization(axis=3, epsilon=1e-05, momentum=0.9)(output)
+        local_img = AveragePooling2D((2, 2), strides=2,
+                                     padding=parameters.padding)(local_img)
+        output = Concatenate(axis=3)([output, local_img])
+
+    # second
+    # merged = AveragePooling2D(pool_size=(2, 2), strides=None, padding="valid")(merged)
+
+    output = Flatten()(output)
+    output = Dense(2600, activation='relu', kernel_regularizer=regul, kernel_initializer=init)(output)
+    output = Dropout(parameters.dropout_rate)(output)
+    output = Dense(2600, activation='relu', kernel_regularizer=regul, kernel_initializer=init)(output)
+    output = Dropout(parameters.dropout_rate)(output)
+    output = Dense(200, activation="softmax", kernel_initializer=init, kernel_regularizer=regul)(output)
+
+    model = Model(inputs=net_input, outputs=output)
+    # should give .47 accuracy
+
+    model.compile(optimizer=parameters.optimizer(parameters.initial_learning_rate),
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy', top5])
+
+    return model
