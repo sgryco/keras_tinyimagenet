@@ -119,7 +119,7 @@ def train(parameters):
 
     callbacks = get_callbacks(parameters, embedding_layer_names)
     model.fit_generator(train_generator, epochs=parameters.nb_epochs, verbose=1, validation_data=test_generator,
-                        callbacks=callbacks, shuffle='batch', workers=6)
+                        callbacks=callbacks, shuffle='batch', workers=8)
     pass
     pass
     # plot_confusion_matrix(test_y, y_pred)

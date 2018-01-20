@@ -61,14 +61,32 @@ def get_normalized_image_generators_from_hdf5(parameters):
     return train_generator, test_generator
 
 
-def create_hdf5_from_numpy(imgs, classes, path):
-    dataset = h5py.File(path, 'w')
+def create_hdf5_from_folder(folder, hdf5_path, parameters):
+    print("creating hdf5 file:{}".format(hdf5_path))
+    tmp_generator = ImageDataGenerator().flow_from_directory(
+        folder, shuffle=False, batch_size=1, target_size=parameters.input_size)
+    n_classes = tmp_generator.num_classes
+    imgs = np.empty([tmp_generator.n] + list(tmp_generator.image_shape), dtype=np.float32)
+    classes = np.zeros((tmp_generator.n,  n_classes), dtype=np.float32)
+    i = 0
+    for img, cla in tmp_generator:
+        imgs[i] = img[0]
+        classes[i] = cla[0] # cla is already a binary matrix
+        i += 1
+        print("loading hdf5 array {}/{}\r".format(i, tmp_generator.n), end="")
+        if i >= tmp_generator.n:
+            break
+
+    dataset = h5py.File(hdf5_path, 'w')
     dataset.create_dataset('X', data=imgs)
     dataset.create_dataset('Y', data=classes)
     dataset.close()
+    print("done")
 
 
 def get_normalized_image_generators(parameters):
+    train_path_hdf5 = "data/train_raw.hdf5"
+    val_path_hdf5 = "data/val_raw.hdf5"
     mean, std = None, None
     mean = np.array([[[122.4626756, 114.25840613, 101.37467571]]],
                     dtype=np.float32)
@@ -78,7 +96,7 @@ def get_normalized_image_generators(parameters):
         tmp_generator = ImageDataGenerator().flow_from_directory(
             "./data/train",
             shuffle=False,
-            batch_size=1000,
+            batch_size=1,
             target_size=parameters.input_size)
 
         print("loading image to compute normalization...")
@@ -103,7 +121,17 @@ def get_normalized_image_generators(parameters):
         std = np.sqrt((sums.astype(np.float64) / nump)).reshape(1, 1, 3)
         print("std={}".format(std))
 
+    if not os.path.exists(train_path_hdf5):
+        create_hdf5_from_folder("data/train/", train_path_hdf5, parameters)
 
+    if not os.path.exists(val_path_hdf5):
+        create_hdf5_from_folder("data/val/", val_path_hdf5, parameters)
+
+    print("loading hdf5 file:{}".format(train_path_hdf5))
+    h5f = h5py.File(train_path_hdf5, 'r')
+    train_x = h5f['X'][:]  # [:] -> force loading
+    train_y = h5f['Y'][:]
+    print("done")
     strength = parameters.augmentation_strength
     train_data_generator = ImageDataGenerator(featurewise_std_normalization=True,
                                          featurewise_center=True,
@@ -114,21 +142,27 @@ def get_normalized_image_generators(parameters):
                                          zoom_range=.15 * strength,
                                          fill_mode='reflect')
     train_data_generator.mean, train_data_generator.std = mean, std
-    train_generator = train_data_generator.flow_from_directory(
-        "./data/train",
-        target_size=parameters.input_size,
-        batch_size=parameters.batch_size, shuffle=True)
+    train_generator = train_data_generator.flow(train_x, train_y,
+                                                batch_size=parameters.batch_size)
+    # train_generator = train_data_generator.flow_from_directory(
+    #     "./data/train",
+    #     target_size=parameters.input_size,
+    #     batch_size=parameters.batch_size, shuffle=True)
 
-    # import ipdb; ipdb.set_trace()  # XXX BREAKPOINT
-    # imgs = np.empty((1,1),dtype=np.float64)
-    # imgs, classes = next(train_generator)
 
+    print("loading hdf5 file:{}".format(val_path_hdf5))
+    h5f = h5py.File(val_path_hdf5, 'r')
+    val_x = h5f['X'][:]  # [:] -> force loading
+    val_y = h5f['Y'][:]
+    print("done")
     val_generator = ImageDataGenerator(featurewise_std_normalization=True,
                                        featurewise_center=True)
     val_generator.mean, val_generator.std = mean, std
-    val_generator = val_generator.flow_from_directory(
-        "./data/val",
-        target_size=parameters.input_size,
-        color_mode="rgb",
-        batch_size=parameters.batch_size, shuffle=False)
+    val_generator = val_generator.flow(val_x, val_y,
+                                       batch_size=parameters.batch_size)
+    # val_generator = val_generator.flow_from_directory(
+    #     "./data/val",
+    #     target_size=parameters.input_size,
+    #     color_mode="rgb",
+    #     batch_size=parameters.batch_size, shuffle=False)
     return train_generator, val_generator
