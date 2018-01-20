@@ -1,17 +1,18 @@
 #!/bin/bash
-
-datapath=$1
-#datapath='/media/koustav/Naihati/Dataset/Tiny_ImageNet/'
-#cd datapath
-#ls tiny-imagenet-200/train/ > folderlist.txt
-#awk 'FNR==NR{a[$1];next}($1 in a){print}' file2 file1 > class_mapping.txt
+# Original author: Koustav Ghosal, V-SENSE, ghosalm@scss.tcd.ie
+# Modified by Corentin Chéron 
 
 
+if [ ! -f "./tiny-imagenet-200.zip" ]; then
+  echo "Downloading tiny imagenet..."
+  wget http://cs231n.stanford.edu/tiny-imagenet-200.zip
+fi
 
-cd $datapath
-mkdir data
-mkdir data/train
-mkdir data/val
+
+mkdir -p data
+mkdir -p data/train
+mkdir -p data/val
+
 echo "extracting..."
 unzip -qq tiny-imagenet-200.zip -d temp/
 
