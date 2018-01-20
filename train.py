@@ -46,7 +46,8 @@ def prelu25():
 
 class BaseParameters():
     batch_size = 128
-    nb_epochs = 40
+    nb_epochs = 31
+    input_size = (64, 64)
 
     initial_learning_rate = 0.001
     lr_patience = 3
@@ -192,7 +193,7 @@ def main():
         train(parameters)
         run_id += 1
 
-        for key, values in PossibleParameters.__dict__.items():
+        for key, values in sorted(PossibleParameters.__dict__.items()):
             if key.startswith('__'):
                 continue
 
@@ -212,7 +213,9 @@ def main():
                 run_id += 1
     else:
         parameters = {k: v for k, v in BaseParameters.__dict__.items() if not k.startswith('__')}
+        parameters['selectedParameters'] = {}
         parameters = ObjFromDict(parameters)
+        parameters.run_name = "{}".format(args.name)
         train(parameters)
 
 

@@ -7,6 +7,7 @@ import sys
 import h5py
 from keras.applications.imagenet_utils import preprocess_input
 from keras.preprocessing.image import ImageDataGenerator
+import numpy as np
 
 
 def load_normalised_tiny_image_net_from_h5():
@@ -29,7 +30,7 @@ def load_normalised_tiny_image_net_from_h5():
     return train_x, train_y, test_x, test_y
 
 
-def get_normalized_image_generators(parameters):
+def get_normalized_image_generators_from_hdf5(parameters):
     train_x, train_y, test_x, test_y = load_normalised_tiny_image_net_from_h5()
     strength = parameters.augmentation_strength
     train_generator = ImageDataGenerator(width_shift_range=0.15 * strength,
@@ -98,19 +99,68 @@ def load_raw_tiny_image_net_from_h5():
 
     return train_x, train_y, test_x, test_y
 
+def create_hdf5_from_numpy(imgs, classes, path):
+    dataset = h5py.File(path, 'w')
+    dataset.create_dataset('X', data=imgs)
+    dataset.create_dataset('Y', data=classes)
+    dataset.close()
 
-def load_raw_tiny_image_net_from_files(preprocess=None, target_size=(224, 224), batch_size=128):
-    val_generator = ImageDataGenerator(preprocessing_function=preprocess,
-                                       data_format="channels_last")
-    with open("./data/tiny-imagenet-200/val/val_annotations.txt", "r") as val_file:
-        val_classes = []
-        img_paths = []
-        for line in val_file.readlines():
-            img_path, class_id = line.split()[:2]
-            val_classes.append(class_id)
-            img_paths.append(img_path)
 
-    val_generator = val_generator.flow_from_directory("./data/tiny-imagenet-200/val", target_size=target_size,
-                                                      color_mode="rgb",
-                                                      batch_size=batch_size, shuffle=False, follow_links=True)
-    return val_generator, val_classes
+def get_normalized_image_generators(parameters):
+
+    mean, std = None, None
+    mean = np.array([[[122.4626756, 114.25840613, 101.37467571]]],
+                    dtype=np.float32)
+    std = np.array([[[70.63153376, 68.6114437, 71.93088608]]],
+                   dtype=np.float32)
+    if mean is None or std is None:
+        tmp_generator = ImageDataGenerator().flow_from_directory(
+            "./data/train",
+            shuffle=False,
+            batch_size=1000,
+            target_size=parameters.input_size)
+
+        print("loading image to compute normalization...")
+        sums = np.zeros((3), dtype=np.int64)
+        nump = 0
+        for i in range(100000//1000):
+            print("mean {}/100\r".format(i + 1), end="")
+            img, val = next(tmp_generator)
+            sums += img.astype(np.int64).sum(axis=(0,1,2))
+            nump += img.shape[0] * img.shape[1] * img.shape[2]
+        mean = (sums.astype(np.float64) / nump).reshape(1, 1, 3)
+        print("mean={}".format(mean))
+
+        # compute std
+        sums = np.zeros((3), dtype=np.float64)
+        nump = 0
+        for i in range(100000//1000):
+            print("std {}/100\r".format(i + 1), end="")
+            img, val = next(tmp_generator)
+            sums += np.square((img.astype(np.float64) - mean)).sum(axis=(0,1,2))
+            nump += img.shape[0] * img.shape[1] * img.shape[2]
+        std = np.sqrt((sums.astype(np.float64) / nump)).reshape(1, 1, 3)
+        print("std={}".format(std))
+
+
+    train_data_generator = ImageDataGenerator(featurewise_std_normalization=True,
+                                         featurewise_center=True)
+    train_data_generator.mean, train_data_generator.std = mean, std
+    train_generator = train_data_generator.flow_from_directory(
+        "./data/train",
+        target_size=parameters.input_size,
+        batch_size=parameters.batch_size, shuffle=True)
+
+    # import ipdb; ipdb.set_trace()  # XXX BREAKPOINT
+    # imgs = np.empty((1,1),dtype=np.float64)
+    # imgs, classes = next(train_generator)
+
+    val_generator = ImageDataGenerator(featurewise_std_normalization=True,
+                                       featurewise_center=True)
+    val_generator.mean, val_generator.std = mean, std
+    val_generator = val_generator.flow_from_directory(
+        "./data/val",
+        target_size=parameters.input_size,
+        color_mode="rgb",
+        batch_size=parameters.batch_size, shuffle=False)
+    return train_generator, val_generator
