@@ -1,1 +1,10 @@
 data/
+failed_tensorboard/
+saved_parameters/
+tensorboard
+hdf5/
+hdf5_raw
+hdf5
+checkpoints
+.idea
+tiny-imagenet-200.zip
