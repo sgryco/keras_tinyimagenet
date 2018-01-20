@@ -61,44 +61,6 @@ def get_normalized_image_generators_from_hdf5(parameters):
     return train_generator, test_generator
 
 
-def get_caffe_image_generators(Parameters):
-    # more info on: https://gist.github.com/ksimonyan/211839e770f7b538e2d8#file-readme-md
-    # In the paper, the model is denoted as the configuration D trained with scale jittering.
-    # The input images should be zero-centered by mean pixel (rather than mean image) subtraction.
-    # Namely, the following BGR values should be subtracted: [103.939, 116.779, 123.68].
-
-    train_x, train_y, test_x, test_y = load_raw_tiny_image_net_from_h5()
-    train_generator = ImageDataGenerator(preprocessing_function=preprocess_input, horizontal_flip=True,
-                                         width_shift_range=0.05,
-                                         height_shift_range=0.05,
-                                         shear_range=.1, zoom_range=.1, fill_mode='nearest'
-                                         )
-    train_generator = train_generator.flow(train_x, train_y, batch_size=Parameters.batch_size)
-    test_generator = ImageDataGenerator(preprocessing_function=preprocess_input)
-    test_generator = test_generator.flow(test_x, test_y, batch_size=Parameters.batch_size, shuffle=False)
-
-    return train_generator, test_generator
-
-
-def load_raw_tiny_image_net_from_h5():
-    # Check if hdf5 databases already exist and create them if not.
-    if (not os.path.exists('hdf5_raw/tiny-imagenet_train.h5') or
-            not os.path.exists('hdf5_raw/tiny-imagenet_val.h5')):
-        print("Error, hdf5 raw dataset not found in folder hdf5.")
-        sys.exit(-1)
-
-    # Load training data from hdf5 dataset.
-    h5f = h5py.File('hdf5_raw/tiny-imagenet_train.h5', 'r')
-    train_x = h5f['X'][:]
-    train_y = h5f['Y'][:]
-
-    # Load validation data.
-    h5f = h5py.File('hdf5_raw/tiny-imagenet_val.h5', 'r')
-    test_x = h5f['X'][:]
-    test_y = h5f['Y'][:]
-
-    return train_x, train_y, test_x, test_y
-
 def create_hdf5_from_numpy(imgs, classes, path):
     dataset = h5py.File(path, 'w')
     dataset.create_dataset('X', data=imgs)
@@ -107,7 +69,6 @@ def create_hdf5_from_numpy(imgs, classes, path):
 
 
 def get_normalized_image_generators(parameters):
-
     mean, std = None, None
     mean = np.array([[[122.4626756, 114.25840613, 101.37467571]]],
                     dtype=np.float32)
@@ -143,8 +104,15 @@ def get_normalized_image_generators(parameters):
         print("std={}".format(std))
 
 
+    strength = parameters.augmentation_strength
     train_data_generator = ImageDataGenerator(featurewise_std_normalization=True,
-                                         featurewise_center=True)
+                                         featurewise_center=True,
+                                         horizontal_flip=True,
+                                         width_shift_range=0.15 * strength,
+                                         height_shift_range=0.15 * strength,
+                                         shear_range=.2 * strength,
+                                         zoom_range=.15 * strength,
+                                         fill_mode='reflect')
     train_data_generator.mean, train_data_generator.std = mean, std
     train_generator = train_data_generator.flow_from_directory(
         "./data/train",
