@@ -55,6 +55,6 @@ def get_callbacks(parameters, embedding_layer_names=None):
                                          write_images=True, embeddings_freq=0,
                                          embeddings_layer_names=embedding_layer_names,
                                          embeddings_metadata=None)
-
+    os.mkdir("checkpoints")
     callbacks = [cb_tensorboard, cb_reduce_lr, cb_early_stop, cb_checkpoint]
     return callbacks

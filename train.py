@@ -46,7 +46,7 @@ def prelu25():
 
 class BaseParameters():
     batch_size = 128
-    nb_epochs = 31
+    nb_epochs = 51
     input_size = (64, 64)
 
     initial_learning_rate = 0.001
