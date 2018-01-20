@@ -42,12 +42,12 @@ def get_callbacks(parameters, embedding_layer_names=None):
                                                      verbose=1,
                                                      min_lr=parameters.min_lr)
     cb_early_stop = keras.callbacks.EarlyStopping(monitor='val_acc', min_delta=0., patience=parameters.patience_stop,
-                                                  verbose=1, mode='auto')
+                                                  verbose=0, mode='auto')
     cb_checkpoint = keras.callbacks.ModelCheckpoint(os.path.join("checkpoints",
-                                                                 model_name + "-weights.{epoch:02d}-{val_acc:.2f}.hdf5"),
+                                                                 model_name + "-weights.hdf5"),
                                                     monitor='val_acc',
-                                                    verbose=0, save_best_only=True,
-                                                    save_weights_only=False, mode='auto', period=1)
+                                                    verbose=1, save_best_only=True,
+                                                    save_weights_only=False, mode='auto', period=2)
 
     cb_tensorboard = LearningRateTracker(parameters=parameters, log_dir=tensorboard_dir, histogram_freq=0,
                                          batch_size=parameters.batch_size,
