@@ -1,0 +1,10 @@
+notes
+
+PH installation:
+
+https://github.com/mind/wheels/releases
+
+pip3 install https://github.com/mind/wheels/releases/download/tf1.4.1-gpu-cuda91-generic/tensorflow-1.4.1-cp35-cp35m-linux_x86_64.whl
+pip3 install pillow keras pydot graphviz h5py
+
+
