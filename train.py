@@ -75,7 +75,6 @@ class PossibleParameters():
     optimizer = [
         sgdMomentum095,
         sgdMomentum095nesterov,
-        adadeltaDefault,
     ]
     batch_size = [64, 128, 256]
     dropout_rate = [0., .25, .5]  # effect of dropout, .25 = drop 25%
@@ -159,6 +158,10 @@ def main():
                         help='Name this run, required.')
     parser.add_argument('--random', default=False, action='store_true',
                         help="Run N (10) random parameters sets")
+    parser.add_argument('--inceptionV3', default=False, action='store_true')
+    parser.add_argument('--resnet50', default=False, action='store_true')
+    parser.add_argument('--vgg16', default=False, action='store_true')
+    parser.add_argument('--pretrained', default=False, action='store_true')
     parser.add_argument('--independent', default=False, action='store_true',
                         help="Run all parameters sets, changing each variable one at a time")
     parser.add_argument('--nrand', type=int, default=10, help='Number of run')
@@ -211,6 +214,37 @@ def main():
                 print(sorted(parameters.selectedParameters.items()))
                 train(parameters)
                 run_id += 1
+
+    elif args.vgg16:
+        parameters = {k: v for k, v in BaseParameters.__dict__.items() if not k.startswith('__')}
+        parameters['selectedParameters'] = {}
+        for key, val in [("model_name", "VGG16"), ("pretrained", args.pretrained)]:
+            parameters[key] = val
+            parameters['selectedParameters'][key] = val
+        parameters = ObjFromDict(parameters)
+        parameters.run_name = "{}".format(args.name)
+        train(parameters)
+
+    elif args.inceptionV3:
+        parameters = {k: v for k, v in BaseParameters.__dict__.items() if not k.startswith('__')}
+        parameters['selectedParameters'] = {}
+        for key, val in [("model_name", "VGG16"), ("pretrained", args.pretrained)]:
+            parameters[key] = val
+            parameters['selectedParameters'][key] = val
+        parameters = ObjFromDict(parameters)
+        parameters.run_name = "{}".format(args.name)
+        train(parameters)
+
+    elif args.resnet50:
+        parameters = {k: v for k, v in BaseParameters.__dict__.items() if not k.startswith('__')}
+        parameters['selectedParameters'] = {}
+        for key, val in [("model_name", "resnet50"), ("pretrained", args.pretrained)]:
+            parameters[key] = val
+            parameters['selectedParameters'][key] = val
+        parameters = ObjFromDict(parameters)
+        parameters.run_name = "{}".format(args.name)
+        train(parameters)
+
     else:
         parameters = {k: v for k, v in BaseParameters.__dict__.items() if not k.startswith('__')}
         parameters['selectedParameters'] = {}

@@ -60,11 +60,13 @@ def test_model(learning_rate=0.01,
     return model
 
 
-def pre_trained_InceptionV3(learning_rate):
+def inceptionV3(parameters):
     net_input = Input([64, 64, 3])
     resizer = Lambda(lambda image: keras.backend.resize_images(image, 2.171875, 2.171875, "channels_last"))(net_input)
 
-    base_model = keras.applications.InceptionV3(weights=None, include_top=False, input_tensor=resizer)
+    base_model = keras.applications.InceptionV3(
+        weights="imagenet" if parameters.pretrained else None,
+        include_top=False, input_tensor=resizer)
 
     output = base_model.output
     output = GlobalAveragePooling2D()(output)
@@ -75,7 +77,8 @@ def pre_trained_InceptionV3(learning_rate):
     # for layer in base_model.layers:
     #     layer.trainable = False
 
-    model.compile(optimizer=SGD(lr=learning_rate, momentum=0.9), loss='categorical_crossentropy',
+    model.compile(optimizer=SGD(lr=parameters.initial_learning_rate, momentum=0.9),
+    loss='categorical_crossentropy',
                   metrics=['accuracy', top5])
 
     return model
@@ -105,14 +108,15 @@ def fine_tune_InceptionV3(model, train_generator, test_generator, callbacks, Par
                         callbacks=callbacks, shuffle='batch', workers=6)
 
 
-def VGG16(learning_rate=.02, load_weights=True):
+def VGG16(parameters):
     net_input = Input([64, 64, 3])
     # resizer = Lambda(lambda image: keras.backend.resize_images(image, 2.171875, 2.171875, "channels_last"))(net_input)
 
     regul = regularizers.l2(0.0005)
-    base_model = keras.applications.VGG16(weights="imagenet" if load_weights else None,
-                                          include_top=False,
-                                          input_tensor=net_input)
+    base_model = keras.applications.VGG16(
+        weights="imagenet" if parameters.pretrained else None,
+        include_top=False,
+        input_tensor=net_input)
     # try to retrain only the last layer?
     # try to lock the old layers?
 
@@ -122,11 +126,11 @@ def VGG16(learning_rate=.02, load_weights=True):
     # output = Dropout(0.5)(output)
     output = Dense(2048, activation='relu', kernel_initializer='he_uniform')(output)
     # output = Dropout(0.5)(output)
-    output = Dense(200, activation="softmax", kernel_initializer='glorot_uniform')(output)
+    output = Dense(200, activation="softmax", kernel_initializer='he_uniform')(output)
 
     model = Model(inputs=base_model.input, outputs=output)
 
-    # batch add regularizer
+    # batch add regularizer to all weights
     for layer in model.layers:
         if hasattr(layer, 'kernel'):
             layer.add_loss(regul(layer.kernel))
@@ -138,7 +142,7 @@ def VGG16(learning_rate=.02, load_weights=True):
     # -> after submission they found that initialization of Glorot & Bzngio (glorot_uniform)
     # this is the default for Keras
 
-    model.compile(optimizer=SGD(lr=learning_rate, momentum=0.9),
+    model.compile(optimizer=SGD(lr=parameters.initial_learning_rate, momentum=0.9),
                   loss='categorical_crossentropy',
                   metrics=['accuracy', top5])
 
@@ -332,6 +336,28 @@ def smallnet(parameters):
     # should give .47 accuracy
 
     model.compile(optimizer=parameters.optimizer(parameters.initial_learning_rate),
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy', top5])
+
+    return model
+
+
+def resnet50(parameters):
+    net_input = Input([64, 64, 3])
+    resizer = Lambda(lambda image: keras.backend.resize_images(image, 3.078125, 3.078125, "channels_last"))(net_input)
+
+    base_model = keras.applications.resnet50.ResNet50(
+        weights="imagenet" if parameters.pretrained else None,
+        include_top=False, input_tensor=resizer, pooling="avg")
+
+    output = base_model.output
+    # output = Flatten()(output)
+    # output = Dense(1024, activation='relu')(output)
+    output = Dense(200, activation="softmax")(output)
+
+    model = Model(inputs=base_model.input, outputs=output)
+
+    model.compile(optimizer=SGD(lr=parameters.initial_learning_rate, momentum=0.9),
                   loss='categorical_crossentropy',
                   metrics=['accuracy', top5])
 
