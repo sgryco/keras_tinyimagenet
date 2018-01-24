@@ -161,6 +161,7 @@ def main():
     parser.add_argument('--inceptionV3', default=False, action='store_true')
     parser.add_argument('--resnet50', default=False, action='store_true')
     parser.add_argument('--vgg16', default=False, action='store_true')
+    parser.add_argument('--vgg16_custom', default=False, action='store_true')
     parser.add_argument('--pretrained', default=False, action='store_true')
     parser.add_argument('--independent', default=False, action='store_true',
                         help="Run all parameters sets, changing each variable one at a time")
@@ -214,6 +215,16 @@ def main():
                 print(sorted(parameters.selectedParameters.items()))
                 train(parameters)
                 run_id += 1
+
+    elif args.vgg16_custom:
+        parameters = {k: v for k, v in BaseParameters.__dict__.items() if not k.startswith('__')}
+        parameters['selectedParameters'] = {}
+        for key, val in [("model_name", "VGG16"), ("pretrained", args.pretrained)]:
+            parameters[key] = val
+            parameters['selectedParameters'][key] = val
+        parameters = ObjFromDict(parameters)
+        parameters.run_name = "{}".format(args.name)
+        train(parameters)
 
     elif args.vgg16:
         parameters = {k: v for k, v in BaseParameters.__dict__.items() if not k.startswith('__')}
