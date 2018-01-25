@@ -22,11 +22,17 @@ def extract_scalars(multiplexer, run, tag):
 
   The result is a list of 3-tuples (wall_time, step, value).
   """
-  tensor_events = multiplexer.Tensors(run, tag)
-  return [
+  # import ipdb; ipdb.set_trace()
+  if (run in multiplexer._accumulators and
+      'tensors' in multiplexer._accumulators[run].Tags()
+      and tag in multiplexer._accumulators[run].Tags()['tensors']):
+    tensor_events = multiplexer.Tensors(run, tag)
+    return [
       (event.wall_time, event.step, tf.make_ndarray(event.tensor_proto).item())
       for event in tensor_events
-  ]
+    ]
+  else:
+    return []
 
 
 def create_multiplexer(logdir):
@@ -63,26 +69,22 @@ def mkdir_p(directory):
 
 
 def main():
-  run_names = (
-      'scalars_demo/temperature:t0=270,tA=270,kH=%s' % x
-      for x in ('0.001', '0.005')
-  )
-  tag_names = ('temperature/current/scalar_summary', 'delta/scalar_summary')
+  tag_names = ('val_acc',)
 
-  logdir = '/tmp/data'
-  output_dir = '/tmp/csv_output'
+  logdir = 'tensorboard'
+  run_names = os.listdir(logdir)
+  output_dir = 'csv_output'
   mkdir_p(output_dir)
 
   print("Loading data...")
   multiplexer = create_multiplexer(logdir)
   for run_name in run_names:
     for tag_name in tag_names:
-      output_filename = '%s___%s' % (
+      output_filename = '%s___%s.csv' % (
           munge_filename(run_name), munge_filename(tag_name))
       output_filepath = os.path.join(output_dir, output_filename)
-      print(
-          "Exporting (run=%r, tag=%r) to %r..."
-          % (run_name, tag_name, output_filepath))
+      print( "Exporting (run=%r, tag=%r) to %r..."
+             % (run_name, tag_name, output_filepath))
       export_scalars(multiplexer, run_name, tag_name, output_filepath)
   print("Done.")
 
