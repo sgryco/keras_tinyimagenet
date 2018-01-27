@@ -10,57 +10,6 @@ from keras.preprocessing.image import ImageDataGenerator
 import numpy as np
 
 
-def load_normalised_tiny_image_net_from_h5():
-    # Check if hdf5 databases already exist and create them if not.
-    if (not os.path.exists('hdf5/tiny-imagenet_train.h5') or
-            not os.path.exists('hdf5/tiny-imagenet_val.h5')):
-        print("Error, hdf5 dataset not found in folder hdf5.")
-        sys.exit(-1)
-
-    # Load training data from hdf5 dataset.
-    h5f = h5py.File('hdf5/tiny-imagenet_train.h5', 'r')
-    train_x = h5f['X'][:]
-    train_y = h5f['Y'][:]
-
-    # Load validation data.
-    h5f = h5py.File('hdf5/tiny-imagenet_val.h5', 'r')
-    test_x = h5f['X'][:]
-    test_y = h5f['Y'][:]
-
-    return train_x, train_y, test_x, test_y
-
-
-def get_normalized_image_generators_from_hdf5(parameters):
-    train_x, train_y, test_x, test_y = load_normalised_tiny_image_net_from_h5()
-    strength = parameters.augmentation_strength
-    train_generator = ImageDataGenerator(width_shift_range=0.15 * strength,
-                                         height_shift_range=0.15 * strength,
-                                         horizontal_flip=True,
-                                         shear_range=.2 * strength,
-                                         zoom_range=.15 * strength,
-                                         # zca_whitening=True if strength != 0. else False,
-                                         # zca_epsilon=1e-6 * strength,
-                                         fill_mode='reflect')
-    # train_generator.fit(train_x)
-
-    # for X_batch, y_batch in train_generator.flow(train_x, train_y, batch_size=9):
-    #     # create a grid of 3x3 images
-    #     for i in range(0, 9):
-    #         pyplot.subplot(330 + 1 + i)
-    #         pyplot.imshow(X_batch[i], cmap=pyplot.get_cmap('gray'))
-    #     # show the plot
-    #     pyplot.show()
-    #     break
-
-    # sys.exit(0)
-
-    train_generator = train_generator.flow(train_x, train_y, batch_size=parameters.batch_size)
-    test_generator = ImageDataGenerator()
-    test_generator = test_generator.flow(test_x, test_y, batch_size=parameters.batch_size, shuffle=False)
-
-    return train_generator, test_generator
-
-
 def create_hdf5_from_folder(folder, hdf5_path, parameters):
     print("creating hdf5 file:{}".format(hdf5_path))
     tmp_generator = ImageDataGenerator().flow_from_directory(
