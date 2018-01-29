@@ -5,7 +5,7 @@ import os
 import sys
 
 import h5py
-from keras.applications.imagenet_utils import preprocess_input
+from keras.applications.xception import preprocess_input as preprocess_tf
 from keras.preprocessing.image import ImageDataGenerator
 import numpy as np
 
@@ -32,6 +32,31 @@ def create_hdf5_from_folder(folder, hdf5_path, parameters):
     dataset.close()
     print("done")
 
+
+def get_tf_image_generator(parameters):
+    train_path_hdf5 = "data/train_raw.hdf5"
+    val_path_hdf5 = "data/val_raw.hdf5"
+
+    h5f = h5py.File(train_path_hdf5, 'r')
+    train_x = h5f['X'][:]  # [:] -> force loading
+    train_y = h5f['Y'][:]
+    strength = parameters.augmentation_strength
+    train_data_generator = ImageDataGenerator(preprocessing_function=preprocess_tf,
+                                              horizontal_flip=True,
+                                              width_shift_range=0.15 * strength,
+                                              height_shift_range=0.15 * strength,
+                                              # shear_range=.2 * strength,
+                                              zoom_range=.15 * strength,
+                                              fill_mode='reflect')
+    train_generator = train_data_generator.flow(train_x, train_y,
+                                                batch_size=parameters.batch_size)
+    h5f = h5py.File(val_path_hdf5, 'r')
+    val_x = h5f['X'][:]  # [:] -> force loading
+    val_y = h5f['Y'][:]
+    val_generator = ImageDataGenerator(preprocessing_function=preprocess_tf)
+    val_generator = val_generator.flow(val_x, val_y,
+                                       batch_size=parameters.batch_size)
+    return train_generator, val_generator
 
 def get_normalized_image_generators(parameters):
     train_path_hdf5 = "data/train_raw.hdf5"

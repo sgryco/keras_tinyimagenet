@@ -15,8 +15,8 @@ from keras.optimizers import SGD, Adadelta
 from keras.utils import print_summary
 import keras
 
-from callbacks import get_callbacks
-from dataset_loading import get_normalized_image_generators
+from callbacks import get_callbacks, get_model_weights_file
+from dataset_loading import get_normalized_image_generators, get_tf_image_generator
 from itertools import combinations
 # noinspection PyPep8Naming
 import model as modelFile
@@ -45,28 +45,30 @@ def prelu25():
         alpha_initializer=keras.initializers.Constant(value=0.25))
 
 class BaseParameters():
-    batch_size = 128
-    nb_epochs = 51
+    batch_size = 64
+    nb_epochs = 71
     input_size = (64, 64)
+    pretrained = False
 
     initial_learning_rate = 0.001
-    lr_patience = 3
+    lr_patience = 2
     lr_update = .1
-    min_lr = .00001
+    min_lr = .000001
     patience_stop = 5
     model_name = 'smallnet'
-    augmentation_strength = 1.
+    augmentation_strength = 1.2
     optimizer = sgdMomentum095
-    dropout_rate = .25
-    filter_size = (3, 3)
-    nb_layers = 2
+    dropout_rate = 0.12
+    filter_size = (5, 5)
+    nb_layers = 4
     conv_repetition = 3
-    nb_filter_inc_per_layer = 16
+    nb_filter_inc_per_layer = 64
     padding = "same"
     activation = "relu"
     kernel_initialization = 'glorot_uniform'
-    kernel_regularizer = 0.
+    kernel_regularizer = 0.001
     loss_function = "categorical_crossentropy"
+    retrain = False  # by default do not retrain base model (that have pretrained weights)
 
 
 class PossibleParameters():
@@ -93,24 +95,32 @@ class PossibleParameters():
     # stride, padding,
     # loss functions softmax,
 
+sequenceToRun = [
+    # {"kernel_initialization": 'glorot_uniform', "dropout_rate": 0.},
+    # {"kernel_initialization": 'he_uniform', "dropout_rate": 0.},
+    # {"kernel_initialization": 'he_uniform', "dropout_rate": 0.12},
+    # {"kernel_initialization": 'glorot_uniform', "dropout_rate": 0.12},
+    {"kernel_initialization": 'he_uniform', "dropout_rate": 0.25},
+    {"kernel_initialization": 'he_uniform', "dropout_rate": 0.37},
+    {"kernel_initialization": 'he_uniform', "dropout_rate": 0.50},
+]
+
 
 
 def train(parameters):
-
     # reset tf graph
     keras.backend.clear_session()
 
     # data loading and augmentation
-    train_generator, test_generator = get_normalized_image_generators(parameters)
-    # train_generator, test_generator = get_caffe_image_generators(Parameters)
+    # train_generator, test_generator = get_normalized_image_generators(parameters)
+    train_generator, test_generator = get_tf_image_generator(parameters)
 
     # define model
-    # model = test_model(learning_rate=Parameters.initial_learning_rate)
-    # model = pre_trained_InceptionV3(learning_rate=Parameters.initial_learning_rate)
-    # model = VGG16(learning_rate=Parameters.initial_learning_rate, load_weights=False)
-    # model = VGG16_custom(learning_rate=Parameters.initial_learning_rate)
     model = getattr(globals()["modelFile"], parameters.model_name)(parameters)
-    # model = mynet1(Parameters.initial_learning_rate)
+    if hasattr(parameters, "load") and parameters.load:
+        weight_file = get_model_weights_file(parameters.load)
+        print("Loading weights from: {}".format(parameters.load))
+        model.load_weights(weight_file)
 
     # save files to folder
     save_files(parameters, model)
@@ -146,10 +156,10 @@ def save_files(parameters, model):
         param_file.write(param_txt)
         keras.utils.print_summary(model, print_fn=lambda s: param_file.write(s + '\n'))
         print("Parameters:", param_txt)
-    keras.utils.plot_model(model,
-                           to_file=os.path.join(folder, timestr + 'model.png'),
-                           show_shapes=True,
-                           show_layer_names=True)
+    # keras.utils.plot_model(model,
+    #                        to_file=os.path.join(folder, timestr + 'model.png'),
+    #                        show_shapes=True,
+    #                        show_layer_names=True)
 
 
 def main():
@@ -158,15 +168,14 @@ def main():
                         help='Name this run, required.')
     parser.add_argument('--random', default=False, action='store_true',
                         help="Run N (10) random parameters sets")
-    parser.add_argument('--inceptionV3', default=False, action='store_true')
-    parser.add_argument('--resnet50', default=False, action='store_true')
-    parser.add_argument('--vgg16', default=False, action='store_true')
-    parser.add_argument('--vgg16_custom', default=False, action='store_true')
+    parser.add_argument('--model', help="The name of the model (function name in model.py)")
     parser.add_argument('--pretrained', default=False, action='store_true')
+    parser.add_argument('--retrain', default=False, action='store_true')
+    parser.add_argument('--sequence', default=False, action='store_true')
+    parser.add_argument('--load', type=str, help='load previous weights')
     parser.add_argument('--independent', default=False, action='store_true',
                         help="Run all parameters sets, changing each variable one at a time")
     parser.add_argument('--nrand', type=int, default=10, help='Number of run')
-    parser.add_argument('--load', action='store_true', help='Reload previous weights')
     args = parser.parse_args()
 
     if args.random:
@@ -215,41 +224,27 @@ def main():
                 print(sorted(parameters.selectedParameters.items()))
                 train(parameters)
                 run_id += 1
+    elif args.sequence:
+        run_id = 1
+        for seq_dict in sequenceToRun:
+            parameters = {k: v for k, v in BaseParameters.__dict__.items() if not k.startswith('__')}
+            parameters['selectedParameters'] = {}
+            for key, value in seq_dict.items():
+                if key not in parameters:
+                    raise ValueError("key {} not in base parameters".format(key))
+                parameters[key] = value
+                parameters['selectedParameters'][key] = value
+            parameters = ObjFromDict(parameters)
+            parameters.run_name = "{}_{:03d}".format(args.name, run_id)
+            print(sorted(parameters.selectedParameters.items()))
+            train(parameters)
+            run_id += 1
 
-    elif args.vgg16_custom:
+    elif args.model:
         parameters = {k: v for k, v in BaseParameters.__dict__.items() if not k.startswith('__')}
         parameters['selectedParameters'] = {}
-        for key, val in [("model_name", "VGG16"), ("pretrained", args.pretrained)]:
-            parameters[key] = val
-            parameters['selectedParameters'][key] = val
-        parameters = ObjFromDict(parameters)
-        parameters.run_name = "{}".format(args.name)
-        train(parameters)
-
-    elif args.vgg16:
-        parameters = {k: v for k, v in BaseParameters.__dict__.items() if not k.startswith('__')}
-        parameters['selectedParameters'] = {}
-        for key, val in [("model_name", "VGG16"), ("pretrained", args.pretrained)]:
-            parameters[key] = val
-            parameters['selectedParameters'][key] = val
-        parameters = ObjFromDict(parameters)
-        parameters.run_name = "{}".format(args.name)
-        train(parameters)
-
-    elif args.inceptionV3:
-        parameters = {k: v for k, v in BaseParameters.__dict__.items() if not k.startswith('__')}
-        parameters['selectedParameters'] = {}
-        for key, val in [("model_name", "VGG16"), ("pretrained", args.pretrained)]:
-            parameters[key] = val
-            parameters['selectedParameters'][key] = val
-        parameters = ObjFromDict(parameters)
-        parameters.run_name = "{}".format(args.name)
-        train(parameters)
-
-    elif args.resnet50:
-        parameters = {k: v for k, v in BaseParameters.__dict__.items() if not k.startswith('__')}
-        parameters['selectedParameters'] = {}
-        for key, val in [("model_name", "resnet50"), ("pretrained", args.pretrained)]:
+        for key, val in [("model_name", args.model), ("pretrained", args.pretrained),
+                         ("retrain", args.retrain), ("load", args.load)]:
             parameters[key] = val
             parameters['selectedParameters'][key] = val
         parameters = ObjFromDict(parameters)

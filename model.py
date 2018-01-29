@@ -2,7 +2,7 @@ import keras
 from keras import Sequential
 from keras import regularizers
 from keras.initializers import he_uniform, glorot_uniform
-from keras.layers import GlobalAveragePooling2D, Input, Lambda, AveragePooling2D, Concatenate, GaussianNoise
+from keras.layers import GlobalAveragePooling2D, Input, Lambda, AveragePooling2D, Concatenate, GaussianNoise, Activation
 from keras.layers.convolutional import Conv2D, MaxPooling2D
 from keras.layers.core import Dense, Dropout, Flatten
 from keras.layers.normalization import BatchNormalization
@@ -63,49 +63,53 @@ def test_model(learning_rate=0.01,
 def inceptionV3(parameters):
     net_input = Input([64, 64, 3])
     resizer = Lambda(lambda image: keras.backend.resize_images(image, 2.171875, 2.171875, "channels_last"))(net_input)
+    net_noise = GaussianNoise(stddev=.05 * parameters.augmentation_strength)(resizer)
 
     base_model = keras.applications.InceptionV3(
+        weights="imagenet" if parameters.pretrained else None,
+        include_top=False, input_tensor=net_noise)
+
+    output = base_model.output
+    output = GlobalAveragePooling2D()(output)
+    # output = Dense(1024, activation='relu')(output)
+    output = Dense(200, activation="softmax")(output)
+
+    model = Model(inputs=base_model.input, outputs=output)
+    if not parameters.retrain:
+        for layer in base_model.layers:
+            layer.trainable = False
+
+    model.compile(optimizer=SGD(lr=parameters.initial_learning_rate, momentum=0.9),
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy', top5])
+
+    return model
+
+def xception(parameters):
+    net_input = Input([64, 64, 3])
+    resizer = Lambda(lambda image: keras.backend.resize_images(image, 1.109375, 1.109375, "channels_last"))(net_input)
+
+    base_model = keras.applications.Xception(
         weights="imagenet" if parameters.pretrained else None,
         include_top=False, input_tensor=resizer)
 
     output = base_model.output
+    output = Dropout(parameters.dropout_rate)(output)
     output = GlobalAveragePooling2D()(output)
     output = Dense(1024, activation='relu')(output)
+    output = Dropout(parameters.dropout_rate)(output)
     output = Dense(200, activation="softmax")(output)
 
     model = Model(inputs=base_model.input, outputs=output)
-    # for layer in base_model.layers:
-    #     layer.trainable = False
+    if not parameters.retrain:
+        for layer in base_model.layers:
+            layer.trainable = False
 
     model.compile(optimizer=SGD(lr=parameters.initial_learning_rate, momentum=0.9),
     loss='categorical_crossentropy',
                   metrics=['accuracy', top5])
 
     return model
-
-
-def fine_tune_InceptionV3(model, train_generator, test_generator, callbacks, Parameters):
-    # for i, layer in enumerate(model.layers):
-    #     print(i, layer.name)
-
-    # we chose to train the top 2 inception blocks, i.e. we will freeze
-    # the first 249 layers and unfreeze the rest:
-    for layer in model.layers[:249]:
-        layer.trainable = False
-    for layer in model.layers[249:]:
-        layer.trainable = True
-
-    # we need to recompile the model for these modifications to take effect
-    # we use SGD with a low learning rate
-
-    model.compile(optimizer=SGD(lr=0.0001, momentum=0.9), loss='categorical_crossentropy',
-                  metrics=['accuracy', top5])
-
-    # we train our model again (this time fine-tuning the top 2 inception blocks
-    # alongside the top Dense layers
-    model.fit_generator(train_generator, epochs=Parameters.nb_epochs,
-                        verbose=1, validation_data=test_generator,
-                        callbacks=callbacks, shuffle='batch', workers=6)
 
 
 def VGG16(parameters):
@@ -149,9 +153,9 @@ def VGG16(parameters):
     return model
 
 
-def VGG16_custom(learning_rate):
+def VGG16_custom(parameters):
     regul = regularizers.l2(0.0005)
-    init = he_uniform()
+    init = parameters.kernel_initialization
 
     img_input = Input([64, 64, 3])
     # Block 1
@@ -185,9 +189,9 @@ def VGG16_custom(learning_rate):
     # Classification block
     x = Flatten(name='flatten')(x)
     x = Dense(4096, activation='relu', name='fc1', kernel_initializer=init)(x)
-    x = Dropout(0.5)(x)
+    x = Dropout(parameters.dropout_rate)(x)
     x = Dense(4096, activation='relu', name='fc2', kernel_initializer=init)(x)
-    x = Dropout(0.5)(x)
+    x = Dropout(parameters.dropout_rate)(x)
     x = Dense(200, activation='softmax', name='predictions', kernel_initializer=init)(x)
 
     model = Model(inputs=img_input, outputs=x)
@@ -197,7 +201,7 @@ def VGG16_custom(learning_rate):
         if hasattr(layer, 'kernel'):
             layer.add_loss(regul(layer.kernel))
 
-    model.compile(optimizer=SGD(lr=learning_rate, momentum=0.9),
+    model.compile(optimizer=SGD(lr=parameters.initial_learning_rate, momentum=0.9),
                   loss='categorical_crossentropy',
                   metrics=['accuracy', top5])
 
@@ -314,10 +318,11 @@ def smallnet(parameters):
             output = Conv2D(nb_conv, kernel_size=parameters.filter_size,
                             strides=1, padding=parameters.padding,
                             kernel_regularizer=regul,
-                            activation='relu',
                             kernel_initializer=init)(output)
+            output = BatchNormalization()(output)
+            output = Activation('relu')(output)
         output = MaxPooling2D((2, 2))(output)
-        output = BatchNormalization(axis=3, epsilon=1e-05, momentum=0.9)(output)
+        # output = BatchNormalization(axis=3, epsilon=1e-05, momentum=0.9)(output)
         local_img = AveragePooling2D((2, 2), strides=2,
                                      padding=parameters.padding)(local_img)
         output = Concatenate(axis=3)([output, local_img])
@@ -326,8 +331,8 @@ def smallnet(parameters):
     # merged = AveragePooling2D(pool_size=(2, 2), strides=None, padding="valid")(merged)
 
     output = Flatten()(output)
-    output = Dense(2600, activation='relu', kernel_regularizer=regul, kernel_initializer=init)(output)
-    output = Dropout(parameters.dropout_rate)(output)
+    # output = Dense(2600, activation='relu', kernel_regularizer=regul, kernel_initializer=init)(output)
+    # output = Dropout(parameters.dropout_rate)(output)
     output = Dense(2600, activation='relu', kernel_regularizer=regul, kernel_initializer=init)(output)
     output = Dropout(parameters.dropout_rate)(output)
     output = Dense(200, activation="softmax", kernel_initializer=init, kernel_regularizer=regul)(output)

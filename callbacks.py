@@ -2,7 +2,8 @@ import os
 
 import keras
 import tensorflow as tf
-
+import pygame
+import numpy as np
 
 class LearningRateTracker(keras.callbacks.TensorBoard):
     def __init__(self, parameters, **kwargs):
@@ -27,9 +28,38 @@ class LearningRateTracker(keras.callbacks.TensorBoard):
         self.writer.add_summary(result, epoch)
 
 
+def get_model_weights_file(name):
+    return os.path.join("checkpoints", name + "-weights.hdf5")
+
+
+class ManualLR(keras.callbacks.Callback):
+     def __init__(self):
+        super(ManualLR, self).__init__()
+        pygame.init()
+        pygame.display.set_mode((100, 100))
+
+     def on_batch_end(self, batch, logs={}):
+        update = False
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN and event.dict['key'] == pygame.K_u:
+                update = True
+        pygame.event.pump()
+        if not update:
+            return
+        plr = keras.backend.get_value(self.model.optimizer.lr)
+        lr = None
+        while lr is None:
+            val = input("\nCurrent lr: {:.8f}\nInput new learning rate:".format(plr))
+            try:
+                lr = np.float32(val)
+            except ValueError:
+                pass
+        keras.backend.set_value(self.model.optimizer.lr, lr)
+        print('Batch {:05d}: ManualLR new input: {:.8f}'.format(batch + 1, lr))
+
+
 def get_callbacks(parameters, embedding_layer_names=None):
-    model_name = parameters.run_name
-    tensorboard_dir = os.path.join('.', 'tensorboard', model_name)
+    tensorboard_dir = os.path.join('.', 'tensorboard', parameters.run_name)
 
     # cb_tensorboard = keras.callbacks.TensorBoard(log_dir=tensorboard_dir, histogram_freq=0,
     #                                              batch_size=Parameters.batch_size,
@@ -43,11 +73,10 @@ def get_callbacks(parameters, embedding_layer_names=None):
                                                      min_lr=parameters.min_lr)
     cb_early_stop = keras.callbacks.EarlyStopping(monitor='val_acc', min_delta=0., patience=parameters.patience_stop,
                                                   verbose=0, mode='auto')
-    cb_checkpoint = keras.callbacks.ModelCheckpoint(os.path.join("checkpoints",
-                                                                 model_name + "-weights.hdf5"),
+    cb_checkpoint = keras.callbacks.ModelCheckpoint(get_model_weights_file(parameters.run_name),
                                                     monitor='val_acc',
                                                     verbose=1, save_best_only=True,
-                                                    save_weights_only=False, mode='auto', period=2)
+                                                    save_weights_only=False, mode='auto', period=1)
 
     cb_tensorboard = LearningRateTracker(parameters=parameters, log_dir=tensorboard_dir, histogram_freq=0,
                                          batch_size=parameters.batch_size,
@@ -55,7 +84,9 @@ def get_callbacks(parameters, embedding_layer_names=None):
                                          write_images=True, embeddings_freq=0,
                                          embeddings_layer_names=embedding_layer_names,
                                          embeddings_metadata=None)
+    manual_lr = ManualLR()
+
     if not os.path.exists("checkpoints"):
         os.mkdir("checkpoints")
-    callbacks = [cb_tensorboard, cb_reduce_lr, cb_early_stop]
+    callbacks = [cb_checkpoint, cb_tensorboard, cb_reduce_lr, cb_early_stop, manual_lr]
     return callbacks
