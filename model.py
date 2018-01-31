@@ -9,53 +9,55 @@ from keras.layers.normalization import BatchNormalization
 from keras.metrics import top_k_categorical_accuracy as top5
 from keras.models import Model
 from keras.optimizers import SGD
+import tensorflow as tf
+
+metrics = ['accuracy', top5, tf.losses.log_loss]
 
 
-def test_model(learning_rate=0.01,
-               loss_function='categorical_crossentropy',
-               num_classes=200):
+def test_model(parameters):
 
     regul = regularizers.l2(0.0001)
-    initializer = "glorot_uniform"
-    model = Sequential()
+    initializer = "he_uniform"
+    net_input = Input([64, 64, 3])
+    output = net_input
 
-    model.add(BatchNormalization(epsilon=1e-05, momentum=0.9, input_shape=(64, 64, 3)))
-    model.add(Conv2D(32, 3, kernel_regularizer=regul, kernel_initializer=initializer,
-                     activation='relu'))
-    model.add(Conv2D(32, 3, kernel_regularizer=regul, kernel_initializer=initializer,
-                     activation='relu'))
-    model.add(MaxPooling2D((2, 2)))
-    model.add(BatchNormalization(epsilon=1e-05, momentum=0.9, input_shape=(64, 64, 3)))
+    output = BatchNormalization(epsilon=1e-05, momentum=0.9, input_shape=(64, 64, 3))(output)
+    output = Conv2D(32, 3, kernel_regularizer=regul, kernel_initializer=initializer)(output)
+    output = BatchNormalization()(output)
+    output = Activation('relu')(output)
+    output = MaxPooling2D((2, 2))(output)
 
-    model.add(Conv2D(64, 3, kernel_regularizer=regul, kernel_initializer=initializer,
-                     activation='relu'))
-    model.add(Conv2D(64, 3, kernel_regularizer=regul, kernel_initializer=initializer,
-                     activation='relu'))
-    model.add(MaxPooling2D((2, 2)))
-    model.add(BatchNormalization(epsilon=1e-05, momentum=0.9, input_shape=(64, 64, 3)))
+    output = BatchNormalization(epsilon=1e-05, momentum=0.9, input_shape=(64, 64, 3))(output)
+    output = Conv2D(64, 3, kernel_regularizer=regul, kernel_initializer=initializer)(output)
+    output = BatchNormalization()(output)
+    output = Activation('relu')(output)
+    output = MaxPooling2D((2, 2))(output)
 
-    model.add(Conv2D(128, 3, kernel_regularizer=regul, kernel_initializer=initializer,
-                     activation='relu'))
-    model.add(Conv2D(128, 3, kernel_regularizer=regul, kernel_initializer=initializer,
-                     activation='relu'))
-    model.add(MaxPooling2D((2, 2)))
-    model.add(BatchNormalization(epsilon=1e-05, momentum=0.9, input_shape=(64, 64, 3)))
 
-    model.add(Flatten())
-    model.add(Dense(1024, activation='relu', kernel_regularizer=regul,
-                    kernel_initializer=initializer))
-    model.add(Dropout(0.15))  # the rate of dropping, here 15%
-    model.add(Dense(1024, activation='relu', kernel_regularizer=regul,
-                    kernel_initializer=initializer))
-    model.add(Dropout(0.15))
-    model.add(Dense(num_classes, activation='softmax', kernel_initializer=initializer))
+    output = BatchNormalization(epsilon=1e-05, momentum=0.9, input_shape=(64, 64, 3))(output)
+    output = Conv2D(96, 3, kernel_regularizer=regul, kernel_initializer=initializer)(output)
+    output = BatchNormalization()(output)
+    output = Activation('relu')(output)
+    output = MaxPooling2D((2, 2))(output)
 
-    sgd = SGD(lr=learning_rate, decay=0., momentum=0.9, nesterov=True)
+    output = BatchNormalization(epsilon=1e-05, momentum=0.9, input_shape=(64, 64, 3))(output)
+    output = Conv2D(239, 3, kernel_regularizer=regul, kernel_initializer=initializer)(output)
+    output = BatchNormalization()(output)
+    output = Activation('relu')(output)
+    output = MaxPooling2D((2, 2))(output)
 
-    # should get 40% val acc
-    model.compile(loss=loss_function,
+
+    output = Flatten()(output)
+    output = Dense(768, activation='relu', kernel_regularizer=regul, kernel_initializer=initializer)(output)
+    output = Dropout(0.25)(output)
+    output = Dense(200, activation="softmax", kernel_initializer=initializer, kernel_regularizer=regul)(output)
+
+    model = Model(inputs=net_input, outputs=output)
+
+    sgd = SGD(lr=parameters.initial_learning_rate, decay=0., momentum=0.9, nesterov=True)
+    model.compile(loss='categorical_crossentropy',
                   optimizer=sgd,
-                  metrics=['accuracy', top5]
+                  metrics=metrics
                   )
     return model
 
@@ -63,11 +65,11 @@ def test_model(learning_rate=0.01,
 def inceptionV3(parameters):
     net_input = Input([64, 64, 3])
     resizer = Lambda(lambda image: keras.backend.resize_images(image, 2.171875, 2.171875, "channels_last"))(net_input)
-    net_noise = GaussianNoise(stddev=.05 * parameters.augmentation_strength)(resizer)
+    # net_noise = GaussianNoise(stddev=.05 * parameters.augmentation_strength)(resizer)
 
     base_model = keras.applications.InceptionV3(
         weights="imagenet" if parameters.pretrained else None,
-        include_top=False, input_tensor=net_noise)
+        include_top=False, input_tensor=resizer)
 
     output = base_model.output
     output = GlobalAveragePooling2D()(output)
@@ -81,7 +83,7 @@ def inceptionV3(parameters):
 
     model.compile(optimizer=SGD(lr=parameters.initial_learning_rate, momentum=0.9),
                   loss='categorical_crossentropy',
-                  metrics=['accuracy', top5])
+                  metrics=metrics)
 
     return model
 
@@ -107,7 +109,7 @@ def xception(parameters):
 
     model.compile(optimizer=SGD(lr=parameters.initial_learning_rate, momentum=0.9),
     loss='categorical_crossentropy',
-                  metrics=['accuracy', top5])
+                  metrics=metrics)
 
     return model
 
@@ -148,7 +150,7 @@ def VGG16(parameters):
 
     model.compile(optimizer=SGD(lr=parameters.initial_learning_rate, momentum=0.9),
                   loss='categorical_crossentropy',
-                  metrics=['accuracy', top5])
+                  metrics=metrics)
 
     return model
 
@@ -203,7 +205,7 @@ def VGG16_custom(parameters):
 
     model.compile(optimizer=SGD(lr=parameters.initial_learning_rate, momentum=0.9),
                   loss='categorical_crossentropy',
-                  metrics=['accuracy', top5])
+                  metrics=metrics)
 
     return model
 
@@ -242,7 +244,7 @@ def test_regul(learning_rate):
 
     model.compile(optimizer=SGD(lr=learning_rate, momentum=0.9),
                   loss='categorical_crossentropy',
-                  metrics=['accuracy', top5])
+                  metrics=metrics)
 
     return model
 
@@ -300,7 +302,7 @@ def mynet1(parameters):
 
     model.compile(optimizer=parameters.optimizer(parameters.initial_learning_rate),
                   loss='categorical_crossentropy',
-                  metrics=['accuracy', top5])
+                  metrics=metrics)
 
     return model
 
@@ -342,7 +344,7 @@ def smallnet(parameters):
 
     model.compile(optimizer=parameters.optimizer(parameters.initial_learning_rate),
                   loss='categorical_crossentropy',
-                  metrics=['accuracy', top5])
+                  metrics=metrics)
 
     return model
 
@@ -364,6 +366,34 @@ def resnet50(parameters):
 
     model.compile(optimizer=SGD(lr=parameters.initial_learning_rate, momentum=0.9),
                   loss='categorical_crossentropy',
-                  metrics=['accuracy', top5])
+                  metrics=metrics)
 
+    return model
+
+
+
+
+def demo_model(parameters):
+    import tensorflow as tf
+    net_input = Input([64, 64, 3])
+
+    output = Conv2D(32, 5, padding='same', activation='relu')(net_input)
+    output = BatchNormalization(epsilon=1e-5, momentum=0.1)(output)
+    output = MaxPooling2D((2, 2))(output)
+
+    output = Conv2D(32, 5, padding='same', activation='relu')(output)
+    output = BatchNormalization(epsilon=1e-5, momentum=0.1)(output)
+    output = MaxPooling2D((2, 2))(output)
+
+    output = Flatten(name='flatten')(output)
+    output = Dense(1024, activation="relu")(output)
+    output = BatchNormalization(epsilon=1e-5, momentum=0.1)(output)
+    output = Dropout(.5)(output)
+    output = Dense(200, activation='softmax')(output)
+
+    model = Model(inputs=net_input, outputs=output)
+
+    model.compile(optimizer=SGD(lr=parameters.initial_learning_rate, momentum=0.9),
+                  loss='categorical_crossentropy',
+                  metrics=metrics)
     return model

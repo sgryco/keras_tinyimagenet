@@ -45,12 +45,12 @@ def prelu25():
         alpha_initializer=keras.initializers.Constant(value=0.25))
 
 class BaseParameters():
-    batch_size = 64
+    batch_size = 128
     nb_epochs = 71
     input_size = (64, 64)
     pretrained = False
 
-    initial_learning_rate = 0.001
+    initial_learning_rate = 0.0001
     lr_patience = 2
     lr_update = .1
     min_lr = .000001
