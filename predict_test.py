@@ -6,6 +6,8 @@ import numpy as np
 from callbacks import get_model_weights_file
 from keras.applications.xception import preprocess_input as preprocess_tf
 import keras.preprocessing.image as image
+import tensorflow as tf
+from model import metrics
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--val', action='store_true')
@@ -15,7 +17,7 @@ args = parser.parse_args()
 
 model_path = get_model_weights_file(args.name)
 print("loading model {}".format(model_path))
-model = keras.models.load_model(model_path)
+model = keras.models.load_model(model_path, custom_objects={'log_loss': tf.losses.log_loss})
 
 if args.val:
     test_path = "data/val/"
@@ -27,6 +29,8 @@ if args.val:
             imgs_path.append(os.path.join(cl_path, im))
             val_classes.append(clid)
     assert len(imgs_path) == 10000
+    imgs_path=imgs_path
+    val_classes=val_classes
 else:
     test_path = "test_data/test_data_raw"
     imgs_path = []
@@ -44,14 +48,34 @@ for i, path in enumerate(imgs_path):
 
 print("predicting")
 predictions = model.predict(imgs)
+import math
+def logloss(true_label, predicted, eps=1e-7):
+  p = np.clip(predicted, eps, 1 - eps)
+  if true_label == 1:
+    return -math.log(p)
+  else:
+    return -math.log(1 - p)
 
 if args.val:
     from sklearn.metrics import log_loss, accuracy_score
     a = np.array(val_classes)
     y_true = np.zeros((a.shape[0], 200))
     y_true[np.arange(a.shape[0]), a] = 1
+    # import ipdb;ipdb.set_trace()
+    model.compile('sgd', loss='categorical_crossentropy', metrics=metrics)
+    ev = model.evaluate(imgs, y_true)
+    print(ev)
     loss = log_loss(y_true, predictions)
-    accuracy = accuracy_score(y_true, y_pred=predictions)
+    closs = 0.
+    for i in range(y_true.shape[0]):
+        for j in range(y_true.shape[1]):
+           closs += logloss(y_true[i, j], predictions[i, j])
+    closs /= y_true.shape[0] * y_true.shape[1]
+    print("Closs =", closs)
+
+    y_pred = np.zeros((predictions.shape[0], 200))
+    y_pred[np.arange(y_pred.shape[0]), np.argmax(predictions, axis=1)] = 1.
+    accuracy = accuracy_score(y_true, y_pred=y_pred)
     print("log loss={}, accuracy={}".format(loss, accuracy))
 
 else:
@@ -92,5 +116,5 @@ else:
                       "n09428293,n12267677\n")
         for i in range(predictions.shape[0]):
             txtfile.write(
-                ",".join([str(i)] + ["{:.06f}".format(p) for p in predictions[i]])+ "\n")
+                ",".join([str(i)] + ["{:.05f}".format(p) for p in predictions[i]])+ "\n")
     print("done!")
