@@ -6,6 +6,7 @@ import numpy as np
 from callbacks import get_model_weights_file
 from keras.applications.xception import preprocess_input as preprocess_tf
 import keras.preprocessing.image as image
+from dataset_loading import mean, std
 import tensorflow as tf
 from model import metrics
 
@@ -44,7 +45,8 @@ imgs = np.empty((len(imgs_path), 64, 64, 3), keras.backend.floatx())
 print("loading test images")
 for i, path in enumerate(imgs_path):
     img = image.load_img(path)
-    imgs[i] = preprocess_tf(image.img_to_array(img))
+    # imgs[i] = preprocess_tf(image.img_to_array(img))
+    imgs[i] = (image.img_to_array(img) - mean) / std
 
 print("predicting")
 predictions = model.predict(imgs)
@@ -114,7 +116,10 @@ else:
                       "n07747607,n07749582,n07753592,n07768694,n07871810,n07873807,"
                       "n07875152,n07920052,n09193705,n09246464,n09256479,n09332890,"
                       "n09428293,n12267677\n")
-        for i in range(predictions.shape[0]):
+        for i in reversed(range(predictions.shape[0])):
             txtfile.write(
-                ",".join([str(i)] + ["{:.05f}".format(p) for p in predictions[i]])+ "\n")
+                ",".join([str(i)] +
+                         ["{:.05f}".format(p) for p in predictions[i]]
+                #  ["{:.05f}".format(p) for p in [.005] * 200]
+                         )+ "\n")
     print("done!")

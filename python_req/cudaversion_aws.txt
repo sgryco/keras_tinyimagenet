@@ -1,0 +1,19 @@
+ubuntu@ip-172-30-0-24:~/anaconda3/lib/python3.6/site-packages/tensorflow$ readelf -d libtensorflow_framework.so 
+
+Dynamic section at offset 0xcd0f50 contains 36 entries:
+  Tag        Type                         Name/Value
+ 0x0000000000000001 (NEEDED)             Shared library: [libcublas.so.9.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libcuda.so.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libcudnn.so.7]
+ 0x0000000000000001 (NEEDED)             Shared library: [libcufft.so.9.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libcurand.so.9.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libcudart.so.9.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libdl.so.2]
+ 0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libpthread.so.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [ld-linux-x86-64.so.2]
+ 0x000000000000000f (RPATH)              Library rpath: [$ORIGIN/../_solib_local/_U@local_Uconfig_Ucuda_S_Scuda_Ccublas___Uexternal_Slocal_Uconfig_Ucuda_Scuda_Scuda_Slib:$ORIGIN/../_solib_local/_U@local_Uconfig_Ucuda_S_Scuda_Ccuda_Udriver___Uexternal_Slocal_Uconfig_Ucuda_Scuda_Scuda_Slib:$ORIGIN/../_solib_local/_U@local_Uconfig_Ucuda_S_Scuda_Ccudnn___Uexternal_Slocal_Uconfig_Ucuda_Scuda_Scuda_Slib:$ORIGIN/../_solib_local/_U@local_Uconfig_Ucuda_S_Scuda_Ccufft___Uexternal_Slocal_Uconfig_Ucuda_Scuda_Scuda_Slib:$ORIGIN/../_solib_local/_U@local_Uconfig_Ucuda_S_Scuda_Ccurand___Uexternal_Slocal_Uconfig_Ucuda_Scuda_Scuda_Slib:$ORIGIN/../_solib_local/_U@local_Uconfig_Ucuda_S_Scuda_Ccudart___Uexternal_Slocal_Uconfig_Ucuda_Scuda_Scuda_Slib:$ORIGIN/:../local_config_cuda/cuda/lib64:../local_config_cuda/cuda/extras/CUPTI/lib64]
+

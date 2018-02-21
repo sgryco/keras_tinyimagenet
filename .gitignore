@@ -8,3 +8,6 @@ hdf5
 checkpoints
 .idea
 tiny-imagenet-200.zip
+test_data/
+csv_output
+kaggle/

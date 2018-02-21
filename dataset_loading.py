@@ -10,6 +10,12 @@ from keras.preprocessing.image import ImageDataGenerator
 import numpy as np
 
 
+mean = np.array([[[122.4626756, 114.25840613, 101.37467571]]],
+                dtype=np.float32)
+std = np.array([[[70.63153376, 68.6114437, 71.93088608]]],
+               dtype=np.float32)
+
+
 def create_hdf5_from_folder(folder, hdf5_path, parameters):
     print("creating hdf5 file:{}".format(hdf5_path))
     tmp_generator = ImageDataGenerator().flow_from_directory(
@@ -37,9 +43,9 @@ def get_tf_image_generator(parameters):
     train_path_hdf5 = "data/train_raw.hdf5"
     val_path_hdf5 = "data/val_raw.hdf5"
 
-    h5f = h5py.File(train_path_hdf5, 'r')
-    train_x = h5f['X'][:]  # [:] -> force loading
-    train_y = h5f['Y'][:]
+    h5f1 = h5py.File(train_path_hdf5, 'r')
+    train_x = h5f1['X'][:]  # [:] -> force loading
+    train_y = h5f1['Y'][:]
     strength = parameters.augmentation_strength
     train_data_generator = ImageDataGenerator(preprocessing_function=preprocess_tf,
                                               horizontal_flip=True,
@@ -50,22 +56,20 @@ def get_tf_image_generator(parameters):
                                               fill_mode='reflect')
     train_generator = train_data_generator.flow(train_x, train_y,
                                                 batch_size=parameters.batch_size)
-    h5f = h5py.File(val_path_hdf5, 'r')
-    val_x = h5f['X'][:]  # [:] -> force loading
-    val_y = h5f['Y'][:]
+    h5f2 = h5py.File(val_path_hdf5, 'r')
+    val_x = h5f2['X'][:]  # [:] -> force loading
+    val_y = h5f2['Y'][:]
     val_generator = ImageDataGenerator(preprocessing_function=preprocess_tf)
     val_generator = val_generator.flow(val_x, val_y,
                                        batch_size=parameters.batch_size)
-    return train_generator, val_generator
+    return train_generator, val_generator, [h5f1, h5f2]
+
 
 def get_normalized_image_generators(parameters):
     train_path_hdf5 = "data/train_raw.hdf5"
     val_path_hdf5 = "data/val_raw.hdf5"
-    mean, std = None, None
-    mean = np.array([[[122.4626756, 114.25840613, 101.37467571]]],
-                    dtype=np.float32)
-    std = np.array([[[70.63153376, 68.6114437, 71.93088608]]],
-                   dtype=np.float32)
+    # mean, std = None, None
+    global mean, std
     if mean is None or std is None:
         tmp_generator = ImageDataGenerator().flow_from_directory(
             "./data/train",
@@ -102,9 +106,9 @@ def get_normalized_image_generators(parameters):
         create_hdf5_from_folder("data/val/", val_path_hdf5, parameters)
 
     print("loading hdf5 file:{}".format(train_path_hdf5))
-    h5f = h5py.File(train_path_hdf5, 'r')
-    train_x = h5f['X'][:]  # [:] -> force loading
-    train_y = h5f['Y'][:]
+    h5f1 = h5py.File(train_path_hdf5, 'r')
+    train_x = h5f1['X']  # [:] -> force loading
+    train_y = h5f1['Y']
     print("done")
     strength = parameters.augmentation_strength
     train_data_generator = ImageDataGenerator(featurewise_std_normalization=True,
@@ -118,25 +122,60 @@ def get_normalized_image_generators(parameters):
     train_data_generator.mean, train_data_generator.std = mean, std
     train_generator = train_data_generator.flow(train_x, train_y,
                                                 batch_size=parameters.batch_size)
-    # train_generator = train_data_generator.flow_from_directory(
-    #     "./data/train",
-    #     target_size=parameters.input_size,
-    #     batch_size=parameters.batch_size, shuffle=True)
 
 
     print("loading hdf5 file:{}".format(val_path_hdf5))
-    h5f = h5py.File(val_path_hdf5, 'r')
-    val_x = h5f['X'][:]  # [:] -> force loading
-    val_y = h5f['Y'][:]
+    h5f2 = h5py.File(val_path_hdf5, 'r')
+    val_x = h5f2['X']  # [:] -> force loading
+    val_y = h5f2['Y']
     print("done")
     val_generator = ImageDataGenerator(featurewise_std_normalization=True,
                                        featurewise_center=True)
     val_generator.mean, val_generator.std = mean, std
     val_generator = val_generator.flow(val_x, val_y,
                                        batch_size=parameters.batch_size)
+    return train_generator, val_generator, [h5f1, h5f2]
+
+
+def get_png_data_generator(parameters):
+    """train from all imagenet png, test on val jpg"""
+    strength = parameters.augmentation_strength
+    if strength == 0.:
+        train_data_generator = ImageDataGenerator(
+            featurewise_std_normalization=True,
+            featurewise_center=True)
+    else:
+        train_data_generator = ImageDataGenerator(
+            featurewise_std_normalization=True,
+            featurewise_center=True,
+            horizontal_flip=True,
+            width_shift_range=0.15 * strength,
+            height_shift_range=0.15 * strength,
+            shear_range=.2 * strength,
+            zoom_range=.15 * strength,
+            fill_mode='reflect')
+    train_data_generator.mean, train_data_generator.std = mean, std
+    train_generator = train_data_generator.flow_from_directory(
+        '/home/cory/tinyimagenet-png/train_tin',
+        batch_size=parameters.batch_size,
+        target_size=parameters.input_size)
+
+    val_generator = ImageDataGenerator(featurewise_std_normalization=True,
+                                       featurewise_center=True)
+    val_generator.mean, val_generator.std = mean, std
     # val_generator = val_generator.flow_from_directory(
-    #     "./data/val",
-    #     target_size=parameters.input_size,
-    #     color_mode="rgb",
-    #     batch_size=parameters.batch_size, shuffle=False)
+    #     '/home/cory/tinyimagenet-png/val',
+    #     batch_size=parameters.batch_size,
+    #     target_size=parameters.input_size)
+
+    val_path_hdf5 = 'data/val_raw.hdf5'
+    print('loading hdf5 file:{}'.format(val_path_hdf5))
+    h5f = h5py.File(val_path_hdf5, 'r')
+    val_x = h5f['X']  # [:] -> force loading
+    val_y = h5f['Y']
+    print("done")
+    val_generator = val_generator.flow(val_x, val_y,
+                                       batch_size=parameters.batch_size)
     return train_generator, val_generator
+
+

@@ -4,6 +4,7 @@ import keras
 import tensorflow as tf
 import pygame
 import numpy as np
+from keras import backend as K
 
 class LearningRateTracker(keras.callbacks.TensorBoard):
     def __init__(self, parameters, **kwargs):
@@ -26,6 +27,11 @@ class LearningRateTracker(keras.callbacks.TensorBoard):
         super(LearningRateTracker, self).on_epoch_begin(epoch, logs=logs)
         result = self.sess.run(self.summary_op_begin)
         self.writer.add_summary(result, epoch)
+        # optimizer = self.model.optimizer
+        # lr = K.eval(optimizer.lr * (
+        #             1. / (1. + optimizer.decay * optimizer.iterations)))
+        # print('\nLR: {:.6f}\n'.format(lr))
+
 
 
 def get_model_weights_file(name):
@@ -84,9 +90,9 @@ def get_callbacks(parameters, embedding_layer_names=None):
                                          write_images=True, embeddings_freq=0,
                                          embeddings_layer_names=embedding_layer_names,
                                          embeddings_metadata=None)
-    manual_lr = ManualLR()
+    # manual_lr = ManualLR()
 
     if not os.path.exists("checkpoints"):
         os.mkdir("checkpoints")
-    callbacks = [cb_checkpoint, cb_tensorboard, cb_reduce_lr, cb_early_stop, manual_lr]
+    callbacks = [cb_checkpoint, cb_tensorboard, cb_reduce_lr, cb_early_stop]
     return callbacks

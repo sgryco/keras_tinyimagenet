@@ -81,7 +81,7 @@ def inceptionV3(parameters):
         for layer in base_model.layers:
             layer.trainable = False
 
-    model.compile(optimizer=SGD(lr=parameters.initial_learning_rate, momentum=0.9),
+    model.compile(optimizer=parameters.optimizer(parameters.initial_learning_rate),
                   loss='categorical_crossentropy',
                   metrics=metrics)
 
@@ -128,11 +128,11 @@ def VGG16(parameters):
 
     output = base_model.output
     output = Flatten()(output)
-    output = Dense(2048, activation='relu', kernel_initializer='he_uniform')(output)
-    # output = Dropout(0.5)(output)
-    output = Dense(2048, activation='relu', kernel_initializer='he_uniform')(output)
-    # output = Dropout(0.5)(output)
-    output = Dense(200, activation="softmax", kernel_initializer='he_uniform')(output)
+    output = Dense(4096, activation='relu', kernel_initializer='he_normal')(output)
+    output = Dropout(0.5)(output)
+    output = Dense(4096, activation='relu', kernel_initializer='he_normal')(output)
+    output = Dropout(0.5)(output)
+    output = Dense(200, activation="softmax", kernel_initializer='he_normal')(output)
 
     model = Model(inputs=base_model.input, outputs=output)
 
@@ -140,6 +140,9 @@ def VGG16(parameters):
     for layer in model.layers:
         if hasattr(layer, 'kernel'):
             layer.add_loss(regul(layer.kernel))
+    if not parameters.retrain:
+        for layer in base_model.layers:
+            layer.trainable = False
     # from the article:
     # dropout of 0.5
     # lr = 0.01 -> /10 (3 times) (74 epochs for training)
@@ -148,7 +151,7 @@ def VGG16(parameters):
     # -> after submission they found that initialization of Glorot & Bzngio (glorot_uniform)
     # this is the default for Keras
 
-    model.compile(optimizer=SGD(lr=parameters.initial_learning_rate, momentum=0.9),
+    model.compile(optimizer=parameters.optimizer(parameters.initial_learning_rate),
                   loss='categorical_crossentropy',
                   metrics=metrics)
 
@@ -203,7 +206,7 @@ def VGG16_custom(parameters):
         if hasattr(layer, 'kernel'):
             layer.add_loss(regul(layer.kernel))
 
-    model.compile(optimizer=SGD(lr=parameters.initial_learning_rate, momentum=0.9),
+    model.compile(optimizer=parameters.optimizer(parameters.initial_learning_rate),
                   loss='categorical_crossentropy',
                   metrics=metrics)
 
@@ -337,6 +340,45 @@ def smallnet(parameters):
     # output = Dropout(parameters.dropout_rate)(output)
     output = Dense(2600, activation='relu', kernel_regularizer=regul, kernel_initializer=init)(output)
     output = Dropout(parameters.dropout_rate)(output)
+    output = Dense(200, activation="softmax", kernel_initializer=init, kernel_regularizer=regul)(output)
+
+    model = Model(inputs=net_input, outputs=output)
+    # should give .47 accuracy
+
+    model.compile(optimizer=parameters.optimizer(parameters.initial_learning_rate),
+                  loss='categorical_crossentropy',
+                  metrics=metrics)
+    return model
+
+
+def mirrornet(parameters):
+    net_input = Input([64, 64, 3])
+    net_noise = GaussianNoise(stddev=.05 * parameters.augmentation_strength)(net_input)
+    regul = regularizers.l2(parameters.kernel_regularizer)
+    init = parameters.kernel_initialization
+    output = net_noise
+    local_img = net_noise
+    for conv_nb, nb_conv in enumerate([parameters.nb_filter_inc_per_layer * i
+                                       for i in range(1, parameters.nb_layers + 1)]):
+        for i in range(parameters.conv_repetition):
+            output = Conv2D(nb_conv, kernel_size=parameters.filter_size,
+                            strides=1, padding=parameters.padding,
+                            kernel_regularizer=regul,
+                            kernel_initializer=init,
+                            name="block{}_conv{}".format(conv_nb + 1, i + 1)
+                            )(output)
+            output = BatchNormalization()(output)
+            output = Activation('relu')(output)
+        output = MaxPooling2D((2, 2))(output)
+        local_img = AveragePooling2D((2, 2), strides=2,
+                                     padding=parameters.padding)(local_img)
+        output = Concatenate(axis=3)([output, local_img])
+
+    output = Flatten()(output)
+    output = Dropout(parameters.dropout_rate)(output)
+    # output = Dense(2600, activation='relu', kernel_regularizer=regul, kernel_initializer=init)(output)
+    # output = Dropout(parameters.dropout_rate)(output)
+    # output = Dense(2600, activation='relu', kernel_regularizer=regul, kernel_initializer=init)(output)
     output = Dense(200, activation="softmax", kernel_initializer=init, kernel_regularizer=regul)(output)
 
     model = Model(inputs=net_input, outputs=output)

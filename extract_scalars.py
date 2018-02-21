@@ -2,15 +2,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-
 import csv
 import errno
 import os
 import re
 
 import tensorflow as tf
-from tensorboard.backend.event_processing import plugin_event_multiplexer as event_multiplexer  # pylint: disable=line-too-long
-
+from tensorboard.backend.event_processing import \
+    plugin_event_multiplexer as event_multiplexer  # pylint: disable=line-too-long
 
 # Control downsampling: how many scalar data do we keep for each run/tag
 # combination?
@@ -28,7 +27,8 @@ def extract_scalars(multiplexer, run, tag):
             and tag in multiplexer._accumulators[run].Tags()['tensors']):
         tensor_events = multiplexer.Tensors(run, tag)
         return [
-            (event.wall_time, event.step, tf.make_ndarray(event.tensor_proto).item())
+            (event.wall_time, event.step,
+             tf.make_ndarray(event.tensor_proto).item())
             for event in tensor_events
         ]
     else:
@@ -55,6 +55,7 @@ def export_scalars(multiplexer, run, tag, filepath, write_headers=True):
 
 NON_ALPHABETIC = re.compile('[^A-Za-z0-9_]')
 
+
 def munge_filename(name):
     """Remove characters that might not be safe in a filename."""
     return NON_ALPHABETIC.sub('_', name)
@@ -69,7 +70,8 @@ def mkdir_p(directory):
 
 
 def main():
-    tag_names = ('val_acc',)
+    tag_names = ('val_acc', 'acc', 'Learning_Rate', 'lr',
+                 'val_top_k_categorical_accuracy')
 
     logdir = 'tensorboard'
     run_names = os.listdir(logdir)
@@ -83,8 +85,8 @@ def main():
             output_filename = '%s___%s.csv' % (
                 munge_filename(run_name), munge_filename(tag_name))
             output_filepath = os.path.join(output_dir, output_filename)
-            print( "Exporting (run=%r, tag=%r) to %r..."
-                   % (run_name, tag_name, output_filepath))
+            print("Exporting (run=%r, tag=%r) to %r..."
+                  % (run_name, tag_name, output_filepath))
             export_scalars(multiplexer, run_name, tag_name, output_filepath)
     print("Done.")
 

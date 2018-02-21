@@ -2,6 +2,7 @@
   <dictionary name="cory">
     <words>
       <w>dataset</w>
+      <w>pretrained</w>
       <w>resizer</w>
       <w>softmax</w>
     </words>
