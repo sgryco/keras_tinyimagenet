@@ -42,3 +42,8 @@ Train the MirrorNet-4 network:
 ```
 python train.py --name "MirrorNet-4" --sequence
 ```
+
+Visualise the curves, architecture and parameters with tensorboard:
+```
+tensorboard --logdir=tensorboard
+```
