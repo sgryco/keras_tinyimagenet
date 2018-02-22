@@ -1,6 +1,7 @@
 #!/bin/bash
 # Original author: Koustav Ghosal, V-SENSE, ghosalm@scss.tcd.ie
 # Modified by Corentin Chéron 
+# Download and organise Tiny ImageNet in one script.
 
 
 if [ ! -f "./tiny-imagenet-200.zip" ]; then

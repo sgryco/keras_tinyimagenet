@@ -1,3 +1,10 @@
+"""This file extracts scalar values from the tensorboard logs
+
+The output is saved as csv files in the csv_output folder.
+Original file from
+https://gist.github.com/wchargin/31eee50b9aaebf387b380f70054575c5
+"""
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -9,7 +16,7 @@ import re
 
 import tensorflow as tf
 from tensorboard.backend.event_processing import \
-    plugin_event_multiplexer as event_multiplexer  # pylint: disable=line-too-long
+    plugin_event_multiplexer as event_multiplexer
 
 # Control downsampling: how many scalar data do we keep for each run/tag
 # combination?

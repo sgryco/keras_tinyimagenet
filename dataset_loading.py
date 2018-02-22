@@ -1,11 +1,13 @@
-# this file is created by Corentin Cheron chronc@tcd.ie
-# some loading functions are originally from https://gitlab.scss.tcd.ie/cs7gv1/tflearn-demo
+"""
+This file was created by Corentin Cheron chronc@tcd.ie
+
+Compute the mean and std of the dataset if absent
+Create hdf5 storage if absent
+Return train image generator with augmentation and val image generator without
+"""
 
 import os
-import sys
-
 import h5py
-from keras.applications.xception import preprocess_input as preprocess_tf
 from keras.preprocessing.image import ImageDataGenerator
 import numpy as np
 
@@ -37,32 +39,6 @@ def create_hdf5_from_folder(folder, hdf5_path, parameters):
     dataset.create_dataset('Y', data=classes)
     dataset.close()
     print("done")
-
-
-def get_tf_image_generator(parameters):
-    train_path_hdf5 = "data/train_raw.hdf5"
-    val_path_hdf5 = "data/val_raw.hdf5"
-
-    h5f1 = h5py.File(train_path_hdf5, 'r')
-    train_x = h5f1['X'][:]  # [:] -> force loading
-    train_y = h5f1['Y'][:]
-    strength = parameters.augmentation_strength
-    train_data_generator = ImageDataGenerator(preprocessing_function=preprocess_tf,
-                                              horizontal_flip=True,
-                                              width_shift_range=0.15 * strength,
-                                              height_shift_range=0.15 * strength,
-                                              # shear_range=.2 * strength,
-                                              zoom_range=.15 * strength,
-                                              fill_mode='reflect')
-    train_generator = train_data_generator.flow(train_x, train_y,
-                                                batch_size=parameters.batch_size)
-    h5f2 = h5py.File(val_path_hdf5, 'r')
-    val_x = h5f2['X'][:]  # [:] -> force loading
-    val_y = h5f2['Y'][:]
-    val_generator = ImageDataGenerator(preprocessing_function=preprocess_tf)
-    val_generator = val_generator.flow(val_x, val_y,
-                                       batch_size=parameters.batch_size)
-    return train_generator, val_generator, [h5f1, h5f2]
 
 
 def get_normalized_image_generators(parameters):
@@ -135,47 +111,5 @@ def get_normalized_image_generators(parameters):
     val_generator = val_generator.flow(val_x, val_y,
                                        batch_size=parameters.batch_size)
     return train_generator, val_generator, [h5f1, h5f2]
-
-
-def get_png_data_generator(parameters):
-    """train from all imagenet png, test on val jpg"""
-    strength = parameters.augmentation_strength
-    if strength == 0.:
-        train_data_generator = ImageDataGenerator(
-            featurewise_std_normalization=True,
-            featurewise_center=True)
-    else:
-        train_data_generator = ImageDataGenerator(
-            featurewise_std_normalization=True,
-            featurewise_center=True,
-            horizontal_flip=True,
-            width_shift_range=0.15 * strength,
-            height_shift_range=0.15 * strength,
-            shear_range=.2 * strength,
-            zoom_range=.15 * strength,
-            fill_mode='reflect')
-    train_data_generator.mean, train_data_generator.std = mean, std
-    train_generator = train_data_generator.flow_from_directory(
-        '/home/cory/tinyimagenet-png/train_tin',
-        batch_size=parameters.batch_size,
-        target_size=parameters.input_size)
-
-    val_generator = ImageDataGenerator(featurewise_std_normalization=True,
-                                       featurewise_center=True)
-    val_generator.mean, val_generator.std = mean, std
-    # val_generator = val_generator.flow_from_directory(
-    #     '/home/cory/tinyimagenet-png/val',
-    #     batch_size=parameters.batch_size,
-    #     target_size=parameters.input_size)
-
-    val_path_hdf5 = 'data/val_raw.hdf5'
-    print('loading hdf5 file:{}'.format(val_path_hdf5))
-    h5f = h5py.File(val_path_hdf5, 'r')
-    val_x = h5f['X']  # [:] -> force loading
-    val_y = h5f['Y']
-    print("done")
-    val_generator = val_generator.flow(val_x, val_y,
-                                       batch_size=parameters.batch_size)
-    return train_generator, val_generator
 
 

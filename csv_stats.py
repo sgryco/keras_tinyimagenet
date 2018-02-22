@@ -1,3 +1,4 @@
+"""Extract statistics from all the csv files generated from extract_scalars."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
