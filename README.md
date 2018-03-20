@@ -23,7 +23,7 @@ Main files
 
 Requirements
 ---
-Tensorflow, Keras, pydot, scikit-image, scikit-learn, numpy, Pillow
+Tensorflow, Keras, pydot, scikit-image, scikit-learn, numpy, Pillow, pygame
 
 
 Demo
