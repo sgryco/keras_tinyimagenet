@@ -103,9 +103,10 @@ def get_callbacks(parameters, embedding_layer_names=None):
 
     if not os.path.exists("checkpoints"):
         os.mkdir("checkpoints")
-    callbacks = [cb_checkpoint, cb_tensorboard, cb_reduce_lr, cb_early_stop]
+    callbacks = [cb_tensorboard, cb_reduce_lr, cb_early_stop]
     # manual_lr = ManualLR()
     # callbacks.append(manual_lr)
+    # callbacks.append(cb_checkpoint)
     return callbacks
 
 
