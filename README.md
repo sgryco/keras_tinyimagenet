@@ -4,7 +4,7 @@ MirrorNet Keras implementation
 This project was written by Corentin Chéron
 for the Computer Vision project on Deep Learning and implements a new architecture called MirrorNet.
 
-The report is available [here](https://drive.google.com/open?id=1lPYCw2M5djF9jd7pbk2oGHFjze9mZssZ]).
+The report is available [here](https://drive.google.com/open?id=1lPYCw2M5djF9jd7pbk2oGHFjze9mZssZ).
 
 Main files
 ----
