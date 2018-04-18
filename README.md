@@ -2,7 +2,9 @@ MirrorNet Keras implementation
 =====
 
 This project was written by Corentin Chéron
-for the Computer Vision project on Deep Learning.
+for the Computer Vision project on Deep Learning and implements a new architecture called MirrorNet.
+
+The report is available [here](https://drive.google.com/open?id=1lPYCw2M5djF9jd7pbk2oGHFjze9mZssZ]).
 
 Main files
 ----
@@ -11,7 +13,7 @@ Main files
   * `callbacks.py` All the functions run between two epochs
   * `dataset_loading.py` Related to loading images, creating hdf5 and data augmentation
   * `model.py` Neural networks definitions
-  
+
 * `extract_scalars.py` and `csv_stats.py` Batch extraction of variable from the Tensorboard logs into csv and compute summary statistics 
 * `predict_test.py` Create a Kaggle submission file from test_data and the name of a run
 * `visualize.py` Create a confusion matrix graph and export confusion graph for Gephi
