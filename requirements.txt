@@ -1,11 +1,13 @@
-Keras==2.1.5
-Pillow==5.1.0
-pydot==1.2.4
-scikit-image==0.13.1
-scikit-learn==0.19.1
-scipy==1.0.1
-tensorflow==1.5.0
-tensorflow-tensorboard==1.5.1
-pygame==1.9.3
-h5py==2.7.1
+Keras>=2.1.5                                
+Pillow>=5.1.0                                                                                      
+pydot>=1.2.4
+scikit-image>=0.13.1
+scikit-learn>=0.19.1
+scipy>=1.0.1
+#tensorflow-gpu>=1.5.0
+#tensorflow-tensorboard>=1.5.1
+# install tensorflow manually from a wheel compiled with GPU and CPU i7 optimisations
+pygame>=1.9.3
+h5py>=2.7.1
+
 
