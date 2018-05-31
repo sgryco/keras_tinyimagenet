@@ -47,7 +47,7 @@ class BaseParameters():
     They are loaded first and modified by following options:
     independent testing or sequence.
     """
-    batch_size = 64
+    batch_size = 128
     nb_epochs = 71
     input_size = (64, 64)
     pretrained = False
@@ -135,6 +135,7 @@ def train(parameters):
     embedding_layer_names = set(layer.name for layer in model.layers if layer.name.startswith('conv2d_'))
 
     callbacks = get_callbacks(parameters, embedding_layer_names)
+
     model.fit_generator(train_generator,
                         epochs=parameters.nb_epochs,
                         verbose=1,
