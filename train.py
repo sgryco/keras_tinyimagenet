@@ -121,6 +121,7 @@ def train(parameters):
     # data loading and augmentation
     train_generator, test_generator, h5files = get_normalized_image_generators(parameters)
 
+    # import ipdb; ipdb.set_trace()
     # define model
     # the following "hack" loads the function parameters.model_name from the
     # file model.py. It allows defining the model by a string.
@@ -138,8 +139,10 @@ def train(parameters):
 
     model.fit_generator(train_generator,
                         epochs=parameters.nb_epochs,
+                        steps_per_epoch=train_generator.n // parameters.batch_size,
                         verbose=1,
                         validation_data=test_generator,
+                        validation_steps=test_generator.n // parameters.batch_size,
                         callbacks=callbacks, shuffle='batch', workers=8,
                         use_multiprocessing=True)
 

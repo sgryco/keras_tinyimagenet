@@ -1,6 +1,6 @@
 # coding=utf-8
 """
-   This functions comes from 
+   This functions comes from
    http://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html
    I have modified it to work with keras classification outputs.
 """
@@ -9,7 +9,7 @@ import itertools
 
 import keras
 import keras.preprocessing.image as image
-from keras.applications.xception import preprocess_input as preprocess_tf
+from keras_applications.xception import preprocess_input as preprocess_tf
 import matplotlib.pyplot as plt
 import numpy as np
 import os

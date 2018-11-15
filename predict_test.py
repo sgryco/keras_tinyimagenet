@@ -4,7 +4,7 @@ import keras, os
 import numpy as np
 
 from callbacks import get_model_weights_file
-from keras.applications.xception import preprocess_input as preprocess_tf
+from keras_applications.xception import preprocess_input as preprocess_tf
 import keras.preprocessing.image as image
 from dataset_loading import mean, std
 import tensorflow as tf

@@ -73,9 +73,9 @@ def mirrornet(parameters):
                   metrics=metrics)
     return model
 
-from keras.applications.imagenet_utils import (
+from keras_applications.imagenet_utils import (
     preprocess_input, _obtain_input_shape, decode_predictions)
-from keras.applications.resnet50 import (
+from keras_applications.resnet50 import (
     identity_block, conv_block, WEIGHTS_PATH, WEIGHTS_PATH_NO_TOP)
 from keras.layers import ZeroPadding2D, GlobalMaxPooling2D
 from keras.engine.topology import get_source_inputs
@@ -281,7 +281,7 @@ def inceptionV3(parameters):
     resizer = Lambda(lambda image: keras.backend.resize_images(image, 2.171875, 2.171875, "channels_last"))(net_input)
     # net_noise = GaussianNoise(stddev=.05 * parameters.augmentation_strength)(resizer)
 
-    base_model = keras.applications.InceptionV3(
+    base_model = keras_applications.InceptionV3(
         weights="imagenet" if parameters.pretrained else None,
         include_top=False, input_tensor=resizer)
 
