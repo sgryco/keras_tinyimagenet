@@ -17,6 +17,7 @@ import keras
 import tensorflow as tf
 import pygame
 import numpy as np
+# from keras.utils.vis_utils import model_to_dot
 
 
 class LearningRateTracker(keras.callbacks.TensorBoard):
@@ -139,10 +140,9 @@ def save_files(parameters, model):
         param_file.write(param_txt)
         keras.utils.print_summary(model, print_fn=lambda s: param_file.write(s + '\n'))
         print("Parameters:", param_txt)
-    keras.utils.plot_model(model,
-                           to_file=os.path.join(folder, timestr + 'model.png'),
-                           show_shapes=True,
-                           show_layer_names=True)
-    from keras.utils.vis_utils import model_to_dot
-    dot = model_to_dot(model, show_shapes=False, show_layer_names=True)
-    dot.write(os.path.join(folder, timestr + "_graph.dot"))
+    # keras.utils.plot_model(model,
+                           # to_file=os.path.join(folder, timestr + 'model.png'),
+                           # show_shapes=True,
+                           # show_layer_names=True)
+    # dot = model_to_dot(model, show_shapes=False, show_layer_names=True)
+    # dot.write(os.path.join(folder, timestr + "_graph.dot"))

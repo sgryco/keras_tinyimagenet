@@ -144,7 +144,7 @@ def train(parameters):
                         validation_data=test_generator,
                         validation_steps=test_generator.n // parameters.batch_size,
                         callbacks=callbacks, shuffle='batch', workers=8,
-                        use_multiprocessing=True)
+                        use_multiprocessing=False)
 
     # reset tf graph and close hdf5 files
     keras.backend.clear_session()
